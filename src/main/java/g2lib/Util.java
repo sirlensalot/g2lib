@@ -22,7 +22,7 @@ public class Util {
         }
         if (i % 16 > 0) {
             int pad = 3 * (16 - (i % 16));
-            System.out.printf("pad %d %d\n",pad,i % 16);
+            //System.out.printf("pad %d %d\n",pad,i % 16);
             System.out.printf("%s %" + pad + "s %s\n", hex, "", ascii);
         }
         buffer.position(pos);

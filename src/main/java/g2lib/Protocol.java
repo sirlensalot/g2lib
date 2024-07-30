@@ -332,4 +332,23 @@ public class Protocol {
         public static final Fields FIELDS = new Fields(ControlAssignment.class,values());
     }
 
+    public enum ModuleNames implements FieldEnum {
+        Reserved(6),
+        NameCount(8),
+        Names(ModuleName.FIELDS,ModuleNames.NameCount);
+        ModuleNames(int size) { f = new Field(this,size); }
+        ModuleNames(Fields fs,ModuleNames ix) { f = new Field(this,fs,ix); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(ModuleNames.class,values());
+    }
+
+    public enum ModuleName implements FieldEnum {
+        Name;
+        ModuleName() { f = new Field(this,8); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(ModuleName.class,values());
+    }
+
 }

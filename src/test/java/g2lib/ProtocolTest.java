@@ -465,7 +465,7 @@ class ProtocolTest {
 
         bb = section(0x60,buf); //Control Assignments
         FieldValues cass = ControlAssignments.FIELDS.read(bb);
-        System.out.println(cass);
+        //System.out.println(cass);
         assertFieldEquals(cass,0x02,ControlAssignments.NumControls);
         List<FieldValues> cas = assertSubfields(cass, 2, ControlAssignments.Assignments);
         FieldValues ca = cas.removeFirst();
@@ -478,6 +478,31 @@ class ProtocolTest {
         assertFieldEquals(ca,0x02,ControlAssignment.Location);
         assertFieldEquals(ca,0x07,ControlAssignment.Index);
         assertFieldEquals(ca,0x00,ControlAssignment.Param);
+
+        bb = section(0x5a,buf); //Module Names
+        Util.dumpBuffer(bb.toBuffer());
+        assertEquals(0x01,bb.get(2),"Location");
+        assertEquals(0x00,bb.get(6),"Reserved");
+        assertEquals(0x04,bb.get(8),"NameCount");
+        for (int i = 0; i < 4; i++) {
+            xassertEquals(0x01,bb.get(8),i,"ModuleIndex");
+            StringBuilder sb = new StringBuilder();
+            int c = -1;
+            for (int j = 0; j < 16 && (c=bb.get())!=0; j++) {
+                sb.append(Character.valueOf((char) c));
+            }
+            System.out.println(sb);
+        }
+        /*
+        0.ModuleIndex   : 0x1
+        FltClassic1
+        1.ModuleIndex   : 0x2
+        OscC1
+        2.ModuleIndex   : 0x3
+        ModADSR1
+        3.ModuleIndex   : 0x4
+        2-Out1
+         */
 
     }
 
