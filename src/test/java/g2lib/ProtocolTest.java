@@ -69,11 +69,15 @@ class ProtocolTest {
         FieldValues vp = vps.get(variation);
         //System.out.println(vp);
         assertFieldEquals(vp, variation,VarParams.Variation);
+        String message = "mod params var " + variation;
+        assertSubfieldValues(vp, message, VarParams.Params, Data7.Datum, expecteds);
+    }
+
+    private static void assertSubfieldValues(FieldValues vp, String message, FieldEnum subfield, FieldEnum valField, Integer... expecteds) {
         List<Integer> el = Arrays.asList(expecteds);
-        //System.out.println(el);
-        List<FieldValues> ps = assertSubfields(vp, el.size(), VarParams.Params);
-        List<Integer> al = ps.stream().map(fv -> assertValue(fv,Data.Datum)).toList();
-        assertEquals(el,al,"mod params var " + variation);
+        List<FieldValues> ps = assertSubfields(vp, el.size(), subfield);
+        List<Integer> al = ps.stream().map(fv -> assertValue(fv, valField)).toList();
+        assertEquals(el,al, message);
     }
 
     private void sectionHeader(FieldValues vs, PatchParams f, int section, int entries) {
@@ -99,10 +103,10 @@ class ProtocolTest {
         assertEquals(0x00,buf.get()); // patch version
         BitBuffer bb;
         bb = section(0x21,buf);
-        assertEquals(0x000f,bb.limit()); //length
 
         FieldValues pd = PatchDescription.FIELDS.read(bb);
-        assertFieldEquals(pd,0x10000, PatchDescription.Reserved1);
+        assertSubfieldValues(pd,"PatchDesc reserved",PatchDescription.Reserved,Data8.Datum,
+                1,0xfc,0,0,1,0,0);
         assertFieldEquals(pd,0x04, PatchDescription.Reserved2);
         assertFieldEquals(pd,0x05, PatchDescription.Voices);
         assertFieldEquals(pd,374, PatchDescription.Height);
@@ -124,14 +128,15 @@ class ProtocolTest {
 
         bb = section(0x4a,buf);
         assertEquals(27,bb.limit(), "module list len");
-        assertEquals(1,bb.get(2),"location");
-        assertEquals(4,bb.get(),"num modules");
+        FieldValues modl = ModuleList.FIELDS.read(bb);
+        assertFieldEquals(modl,1,ModuleList.Location);
+        List<FieldValues> mods = assertSubfields(modl, 4, ModuleList.Modules);
 
         FieldValues module;
         List<FieldValues> modes;
 
         //Util.dumpBuffer(b2);
-        module = Module_.FIELDS.read(bb);
+        module = mods.removeFirst();
         assertFieldEquals(module,0x5c, Module_.Id); //filter classic
         assertFieldEquals(module,0x01, Module_.Index);
         assertFieldEquals(module,0x00, Module_.Horiz);
@@ -143,7 +148,7 @@ class ProtocolTest {
         assertFieldEquals(module,0x00, Module_.ModeCount);
         assertSubfields(module, 0, Module_.Modes);
 
-        module = Module_.FIELDS.read(bb);
+        module = mods.removeFirst();
         assertFieldEquals(module,0x09, Module_.Id); //osc c
         assertFieldEquals(module,0x02, Module_.Index);
         assertFieldEquals(module,0x00, Module_.Horiz);
@@ -156,7 +161,7 @@ class ProtocolTest {
         modes = assertSubfields(module, 1, Module_.Modes);
         assertFieldEquals(modes.getFirst(),0x02, ModuleModes.Data);
 
-        module = Module_.FIELDS.read(bb);
+        module = mods.removeFirst();
         assertFieldEquals(module,0x17, Module_.Id);  // ModADSR
         assertFieldEquals(module,0x03, Module_.Index);
         assertFieldEquals(module,0x00, Module_.Horiz);
@@ -169,7 +174,7 @@ class ProtocolTest {
         assertSubfields(module, 0, Module_.Modes);
 
 
-        module = Module_.FIELDS.read(bb);
+        module = mods.removeFirst();
         assertFieldEquals(module,0x04, Module_.Id); // 2-out
         assertFieldEquals(module,0x04, Module_.Index);
         assertFieldEquals(module,0x00, Module_.Horiz);
@@ -183,11 +188,12 @@ class ProtocolTest {
 
         bb = section(0x4a,buf);
         assertEquals(21,bb.limit(), "module list0 len");
-        assertEquals(0,bb.get(2),"location");
-        assertEquals(3,bb.get(),"num modules");
+        modl = ModuleList.FIELDS.read(bb);
+        assertFieldEquals(modl,0,ModuleList.Location);
+        mods = assertSubfields(modl, 3, ModuleList.Modules);
 
 
-        module = Module_.FIELDS.read(bb);
+        module = mods.removeFirst();
         assertFieldEquals(module,0x7f, Module_.Id); // FX Input
         assertFieldEquals(module,0x01, Module_.Index);
         assertFieldEquals(module,0x01, Module_.Horiz);
@@ -200,7 +206,7 @@ class ProtocolTest {
         assertSubfields(module, 0, Module_.Modes);
 
 
-        module = Module_.FIELDS.read(bb);
+        module = mods.removeFirst();
         assertFieldEquals(module,0xb6, Module_.Id);//Delay Stereo
         assertFieldEquals(module,0x02, Module_.Index);
         assertFieldEquals(module,0x01, Module_.Horiz);
@@ -214,7 +220,7 @@ class ProtocolTest {
         assertFieldEquals(modes.getFirst(),0x00, ModuleModes.Data);
 
 
-        module = Module_.FIELDS.read(bb);
+        module = mods.removeFirst();
         assertFieldEquals(module,0x04, Module_.Id); //2-out
         assertFieldEquals(module,0x03, Module_.Index);
         assertFieldEquals(module,0x01, Module_.Horiz);
@@ -229,11 +235,13 @@ class ProtocolTest {
         //52 should be next, CABLE_LIST
         bb = section(0x52,buf);
         assertEquals(0xf,bb.limit(), "cable list1 len");
-        assertEquals(1,bb.get(2),"location");
-        assertEquals(0,bb.get(12),"unknown");
-        assertEquals(3,bb.get(10),"num cables");
+        FieldValues cl = CableList.FIELDS.read(bb);
+        assertFieldEquals(cl,1,CableList.Location);
+        assertFieldEquals(cl,0,CableList.Reserved);
+        assertFieldEquals(cl,3,CableList.CableCount);
+        List<FieldValues> cs = assertSubfields(cl, 3, CableList.Cables);
 
-        FieldValues cable = Cable.FIELDS.read(bb);
+        FieldValues cable = cs.removeFirst();
         assertFieldEquals(cable,0x00, Cable.Color);
         assertFieldEquals(cable,0x02, Cable.ModuleFrom);
         assertFieldEquals(cable,0x00, Cable.ConnectorFrom);
@@ -241,7 +249,7 @@ class ProtocolTest {
         assertFieldEquals(cable,0x01, Cable.ModuleTo);
         assertFieldEquals(cable,0x00, Cable.ConnectorTo);
 
-        cable = Cable.FIELDS.read(bb);
+        cable = cs.removeFirst();
         assertFieldEquals(cable,0x00, Cable.Color);
         assertFieldEquals(cable,0x01, Cable.ModuleFrom);
         assertFieldEquals(cable,0x00, Cable.ConnectorFrom);
@@ -249,7 +257,7 @@ class ProtocolTest {
         assertFieldEquals(cable,0x03, Cable.ModuleTo);
         assertFieldEquals(cable,0x05, Cable.ConnectorTo);
 
-        cable = Cable.FIELDS.read(bb);
+        cable = cs.removeFirst();
         assertFieldEquals(cable,0x00, Cable.Color);
         assertFieldEquals(cable,0x03, Cable.ModuleFrom);
         assertFieldEquals(cable,0x01, Cable.ConnectorFrom);
@@ -259,11 +267,13 @@ class ProtocolTest {
 
         bb = section(0x52,buf);
         assertEquals(0xf,bb.limit(), "cable list0 len");
-        assertEquals(0,bb.get(2),"location");
-        assertEquals(0,bb.get(12),"unknown");
-        assertEquals(3,bb.get(10),"num cables");
+        cl = CableList.FIELDS.read(bb);
+        assertFieldEquals(cl,0,CableList.Location);
+        assertFieldEquals(cl,0,CableList.Reserved);
+        assertFieldEquals(cl,3,CableList.CableCount);
+        cs = assertSubfields(cl, 3, CableList.Cables);
 
-        cable = Cable.FIELDS.read(bb);
+        cable = cs.removeFirst();
         assertFieldEquals(cable,0x00, Cable.Color);
         assertFieldEquals(cable,0x01, Cable.ModuleFrom);
         assertFieldEquals(cable,0x00, Cable.ConnectorFrom);
@@ -271,7 +281,7 @@ class ProtocolTest {
         assertFieldEquals(cable,0x02, Cable.ModuleTo);
         assertFieldEquals(cable,0x00, Cable.ConnectorTo);
 
-        cable = Cable.FIELDS.read(bb);
+        cable = cs.removeFirst();
         assertFieldEquals(cable,0x00, Cable.Color);
         assertFieldEquals(cable,0x02, Cable.ModuleFrom);
         assertFieldEquals(cable,0x00, Cable.ConnectorFrom);
@@ -279,7 +289,7 @@ class ProtocolTest {
         assertFieldEquals(cable,0x03, Cable.ModuleTo);
         assertFieldEquals(cable,0x00, Cable.ConnectorTo);
 
-        cable = Cable.FIELDS.read(bb);
+        cable = cs.removeFirst();
         assertFieldEquals(cable,0x00, Cable.Color);
         assertFieldEquals(cable,0x02, Cable.ModuleFrom);
         assertFieldEquals(cable,0x01, Cable.ConnectorFrom);
@@ -316,8 +326,8 @@ class ProtocolTest {
             List<FieldValues> mdials = assertSubfields(ms, 8, MorphSettings.Dials);
             List<FieldValues> mmodes = assertSubfields(ms, 8, MorphSettings.Modes);
             for (int j = 0; j < 8; j++) {
-                assertFieldEquals(mdials.get(j),0x00, Data.Datum);
-                assertFieldEquals(mmodes.get(j),0x01, Data.Datum);
+                assertFieldEquals(mdials.get(j),0x00, Data7.Datum);
+                assertFieldEquals(mmodes.get(j),0x01, Data7.Datum);
             }
             assertFieldEquals(s2.get(i),i,Settings2.Variation);
             assertFieldEquals(s3.get(i),i,Settings3.Variation);

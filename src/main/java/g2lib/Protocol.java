@@ -14,6 +14,19 @@ public class Protocol {
         return BitBuffer.sliceAhead(buf,buf.getShort());
     }
 
+    public enum CableList implements FieldEnum {
+        Location(2),
+        Reserved(12),
+        CableCount(10),
+        Cables(Cable.FIELDS,CableList.CableCount);
+        CableList(int size) { f = new SizedField(this,size); }
+        CableList(Fields fs, FieldEnum fe) { f = new SubfieldsField(this,fs,fe); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(CableList.class,values());
+
+    }
+
     public enum Cable implements FieldEnum {
         Color         (3),
         ModuleFrom    (8),
@@ -35,6 +48,17 @@ public class Protocol {
         public static final Fields FIELDS = new Fields(ModuleModes.class,values());
     }
 
+    public enum ModuleList implements FieldEnum {
+        Location(2),
+        ModuleCount(8),
+        Modules(Module_.FIELDS,ModuleList.ModuleCount);
+        ModuleList(int size) { f = new SizedField(this,size); }
+        ModuleList(Fields fs,FieldEnum e) { f = new SubfieldsField(this,fs,e);}
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(ModuleList.class,values());
+
+    }
 
     public enum Module_ implements FieldEnum {
 
@@ -59,7 +83,7 @@ public class Protocol {
 
     public enum PatchDescription implements FieldEnum {
         //skip 7
-        Reserved1(7*8),
+        Reserved(Data8.FIELDS,7),
         Reserved2(5),
         Voices(5),
         Height(14),
@@ -76,6 +100,7 @@ public class Protocol {
         Category(8);
 
         PatchDescription(int size) { f = new SizedField(this,size); }
+        PatchDescription(Fields fs,int c) { f = new SubfieldsField(this,fs,c); }
         private final Field f;
         public Field field() { return f; }
         public static final Fields FIELDS = new Fields(PatchDescription.class,values());
@@ -190,18 +215,26 @@ public class Protocol {
         Dials(),
         Modes();
         MorphSettings(int size) { f = new SizedField(this,size); }
-        MorphSettings() { f = new SubfieldsField(this,Data.FIELDS,8); }
+        MorphSettings() { f = new SubfieldsField(this, Data7.FIELDS,8); }
         private final Field f;
         public Field field() { return f; }
         public static final Fields FIELDS = new Fields(MorphSettings.class,values());
     }
 
-    public enum Data implements FieldEnum {
+    public enum Data7 implements FieldEnum {
         Datum;
-        Data() { this.f = new SizedField(this,7); }
+        Data7() { this.f = new SizedField(this,7); }
         private final Field f;
         public Field field() { return f; }
-        public static final Fields FIELDS = new Fields(Data.class,values());
+        public static final Fields FIELDS = new Fields(Data7.class,values());
+    }
+
+    public enum Data8 implements FieldEnum {
+        Datum;
+        Data8() { this.f = new SizedField(this,8); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(Data8.class,values());
     }
 
     public enum ModuleParams implements FieldEnum {
@@ -231,7 +264,7 @@ public class Protocol {
         Variation(8),
         Params;
         VarParams(int size) { f = new SizedField(this,size); }
-        VarParams() { f = new SubfieldsField(this,Data.FIELDS, ModuleParamSet.ParamCount); }
+        VarParams() { f = new SubfieldsField(this, Data7.FIELDS, ModuleParamSet.ParamCount); }
         private final Field f;
         public Field field() { return f; }
         public static final Fields FIELDS = new Fields(VarParams.class,values());
