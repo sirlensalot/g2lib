@@ -7,10 +7,9 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-public class SubfieldsField implements Field {
+public class SubfieldsField extends AbstractField implements Field {
     private final Fields subfields;
     private final SubfieldCount subfieldCount;
-    public final Enum<?> enum_;
 
     public interface SubfieldCount {
         int getCount(List<FieldValues> values);
@@ -55,30 +54,15 @@ public class SubfieldsField implements Field {
     }
 
     private <T extends Enum<T>> SubfieldsField(Enum<T> e, Fields subfields, SubfieldCount subfieldCount) {
+        super(e);
         this.subfields = subfields;
         this.subfieldCount = subfieldCount;
-        this.enum_ = e;
     }
 
     @Override
     public String toString() {
         return String.format("%s: %s",
-                enum_.name(), subfields);
-    }
-
-    @Override
-    public String name() {
-        return String.format("%s.%s",enum_.getDeclaringClass().getSimpleName(),enum_.name());
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return obj instanceof SubfieldsField && ((SubfieldsField) obj).enum_ == enum_;
-    }
-
-    @Override
-    public int hashCode() {
-        return enum_.hashCode();
+                name(), subfields);
     }
 
     @Override
