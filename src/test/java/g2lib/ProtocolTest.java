@@ -516,6 +516,31 @@ class ProtocolTest {
         assertFieldEquals(n,0x04,ModuleName.ModuleIndex);
         assertFieldEquals(n,"2-Out1",ModuleName.Name);
 
+
+        bb = section(0x5a,buf); //Module Names
+        assertEquals(0x00,bb.get(2),"Location");
+        mns = ModuleNames.FIELDS.read(bb);
+        assertFieldEquals(mns,0x00,ModuleNames.Reserved);
+        assertFieldEquals(mns,0x03,ModuleNames.NameCount);
+        ns = assertSubfields(mns, 3, ModuleNames.Names);
+
+        n = ns.removeFirst();
+        assertFieldEquals(n,0x01,ModuleName.ModuleIndex);
+        assertFieldEquals(n,"Fx-In1",ModuleName.Name);
+
+        n = ns.removeFirst();
+        assertFieldEquals(n,0x02,ModuleName.ModuleIndex);
+        assertFieldEquals(n,"DlyStereo1",ModuleName.Name);
+
+        n = ns.removeFirst();
+        assertFieldEquals(n,0x03,ModuleName.ModuleIndex);
+        assertFieldEquals(n,"2-Out1",ModuleName.Name);
+
+
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x02,bb.get(2),"Location"); // settings/morph labels
+
+
     }
 
 
