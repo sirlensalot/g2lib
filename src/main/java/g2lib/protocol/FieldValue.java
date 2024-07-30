@@ -28,7 +28,7 @@ public class FieldValue {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(field.enum_.name()).append(": ");
+        StringBuilder sb = new StringBuilder(field.name()).append(": ");
         if (value != null) {
             return sb.append(value).toString();
         }
