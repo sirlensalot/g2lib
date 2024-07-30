@@ -54,6 +54,10 @@ public class Field {
         this.subfieldCount = null;
     }
 
+    public <T extends Enum<T>> Field(Enum<T> e, Fields subfields, FieldEnum subfieldIxField) {
+        this(e,subfields,fieldCount(subfieldIxField));
+    }
+
     public <T extends Enum<T>> Field(Enum<T> e, Fields subfields, SubfieldCount subfieldCount) {
         this.subfields = subfields;
         this.subfieldCount = subfieldCount;

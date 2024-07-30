@@ -17,9 +17,18 @@ class ProtocolTest {
 
     public static int assertFieldEquals(FieldValues values, int expected, FieldEnum field) {
         int actual = assertValue(values, field);
-        assertEquals(Integer.toHexString(expected), Integer.toHexString(actual),field.toString());
+        assertEquals(String.format("%#02x",expected),
+                String.format("%#02x",actual)
+                ,field.toString());
         return actual;
     }
+
+
+    private void xassertEquals(int expected, int actual, Object... msgs) {
+        String msg = String.join(".",Arrays.stream(msgs).map(Object::toString).toList());
+        System.out.printf("%-16s: %#02x\n",msg,actual);
+    }
+
 
     private static int assertValue(FieldValues values, FieldEnum field) {
         assertTrue(field.value(values).isPresent(),"value found: " + field);
@@ -455,11 +464,22 @@ class ProtocolTest {
         }
 
         bb = section(0x60,buf); //Control Assignments
-        System.out.printf("%x,ControlAssignments.NumControls\n", bb.get(7));
+        FieldValues cass = ControlAssignments.FIELDS.read(bb);
+        System.out.println(cass);
+        assertFieldEquals(cass,0x02,ControlAssignments.NumControls);
+        List<FieldValues> cas = assertSubfields(cass, 2, ControlAssignments.Assignments);
+        FieldValues ca = cas.removeFirst();
+        assertFieldEquals(ca,0x07,ControlAssignment.MidiCC);
+        assertFieldEquals(ca,0x02,ControlAssignment.Location);
+        assertFieldEquals(ca,0x02,ControlAssignment.Index);
+        assertFieldEquals(ca,0x00,ControlAssignment.Param);
+        ca = cas.removeFirst();
+        assertFieldEquals(ca,0x11,ControlAssignment.MidiCC);
+        assertFieldEquals(ca,0x02,ControlAssignment.Location);
+        assertFieldEquals(ca,0x07,ControlAssignment.Index);
+        assertFieldEquals(ca,0x00,ControlAssignment.Param);
 
     }
-
-
 
 
 }

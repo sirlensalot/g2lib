@@ -311,5 +311,25 @@ public class Protocol {
         public static final Fields FIELDS = new Fields(KnobParams.class,values());
     }
 
+    public enum ControlAssignments implements FieldEnum {
+        NumControls(7),
+        Assignments(ControlAssignment.FIELDS,ControlAssignments.NumControls);
+        ControlAssignments(int size) { f = new Field(this,size); }
+        ControlAssignments(Fields fs,ControlAssignments ix) { f = new Field(this,fs,ix); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(ControlAssignments.class,values());
+    }
+
+    public enum ControlAssignment implements FieldEnum {
+        MidiCC(7),
+        Location(2),
+        Index(8),
+        Param(7);
+        ControlAssignment(int size) { f = new Field(this,size); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(ControlAssignment.class,values());
+    }
 
 }
