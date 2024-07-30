@@ -11,11 +11,15 @@ public interface FieldEnum {
         return values.get(this);
     }
 
-    default Optional<Integer> value(FieldValues values) {
-        return get(values).flatMap(fv -> Optional.of(fv.getValue()));
+    default Optional<Integer> intValue(FieldValues values) {
+        return get(values).flatMap(fv -> Optional.of(IntValue.intValue(fv)));
     }
 
-    default Optional<List<FieldValues>> values(FieldValues values) {
-        return get(values).flatMap(fv -> Optional.of(fv.getValues()));
+    default Optional<String> stringValue(FieldValues values) {
+        return get(values).flatMap(fv -> Optional.of(StringValue.stringValue(fv)));
+    }
+
+    default Optional<List<FieldValues>> subfieldsValue(FieldValues values) {
+        return get(values).flatMap(fv -> Optional.of(SubfieldsValue.subfieldsValue(fv)));
     }
 }

@@ -19,7 +19,7 @@ public class FieldValues {
         int idx = f.ordinal();
         if (values.size() > idx) {
             FieldValue fv = values.get(f.ordinal());
-            if (fv.field == f.field()) {
+            if (fv.field() == f.field()) {
                 return Optional.of(fv);
             }
         }

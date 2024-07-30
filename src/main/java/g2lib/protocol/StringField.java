@@ -10,7 +10,6 @@ public class StringField extends AbstractField implements Field {
         super(e);
     }
 
-
     @Override
     public String toString() {
         return String.format("%s: (String)",
@@ -24,7 +23,7 @@ public class StringField extends AbstractField implements Field {
         for (int j = 0; j < 16 && (c=bb.get())!=0; j++) {
             sb.append(Character.valueOf((char) c));
         }
-        values.getFirst().add(new FieldValue(this, sb.length()));
+        values.getFirst().add(new StringValue(this, sb.toString()));
     }
 
 }

@@ -2,10 +2,7 @@ package g2lib.protocol;
 
 import g2lib.BitBuffer;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
 
 public class SizedField extends AbstractField implements Field {
     private final int size;
@@ -24,7 +21,7 @@ public class SizedField extends AbstractField implements Field {
 
     @Override
     public void read(BitBuffer bb, List<FieldValues> values) {
-        values.getFirst().add(new FieldValue(this, bb.get(size)));
+        values.getFirst().add(new IntValue(this, bb.get(size)));
     }
 
 }

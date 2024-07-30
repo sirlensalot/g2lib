@@ -23,6 +23,12 @@ class ProtocolTest {
         return actual;
     }
 
+    public static String assertFieldEquals(FieldValues values, String expected, FieldEnum field) {
+        String actual = assertString(values, field);
+        assertEquals(expected,actual,field.toString());
+        return actual;
+    }
+
 
     private void xassertEquals(int expected, int actual, Object... msgs) {
         String msg = String.join(".",Arrays.stream(msgs).map(Object::toString).toList());
@@ -31,12 +37,19 @@ class ProtocolTest {
 
 
     private static int assertValue(FieldValues values, FieldEnum field) {
-        assertTrue(field.value(values).isPresent(),"value found: " + field);
-        return field.value(values).get();
+        Optional<Integer> i = field.intValue(values);
+        assertTrue(i.isPresent(),"value found: " + field);
+        return i.get();
+    }
+
+    private static String assertString(FieldValues values, FieldEnum field) {
+        Optional<String> s = field.stringValue(values);
+        assertTrue(s.isPresent(),"value found: " + field);
+        return s.get();
     }
 
     public static List<FieldValues> assertSubfields(FieldValues fv, int size, FieldEnum field) {
-        Optional<List<FieldValues>> o = field.values(fv);
+        Optional<List<FieldValues>> o = field.subfieldsValue(fv);
         assertTrue(o.isPresent(),"subfields not found: " + field);
         List<FieldValues> fvs = o.get();
         assertEquals(size,fvs.size(),"size: " + field);
@@ -64,8 +77,8 @@ class ProtocolTest {
     }
 
     private void sectionHeader(FieldValues vs, PatchParams f, int section, int entries) {
-        assertTrue(f.values(vs).isPresent(),"header present: " + f);
-        FieldValues h = f.values(vs).get().getFirst();
+        assertTrue(f.subfieldsValue(vs).isPresent(),"header present: " + f);
+        FieldValues h = f.subfieldsValue(vs).get().getFirst();
         assertFieldEquals(h,section,SectionHeader.Section);
         assertFieldEquals(h,entries,SectionHeader.Entries);
     }
@@ -480,29 +493,28 @@ class ProtocolTest {
         assertFieldEquals(ca,0x00,ControlAssignment.Param);
 
         bb = section(0x5a,buf); //Module Names
-        Util.dumpBuffer(bb.toBuffer());
         assertEquals(0x01,bb.get(2),"Location");
-        assertEquals(0x00,bb.get(6),"Reserved");
-        assertEquals(0x04,bb.get(8),"NameCount");
-        for (int i = 0; i < 4; i++) {
-            xassertEquals(0x01,bb.get(8),i,"ModuleIndex");
-            StringBuilder sb = new StringBuilder();
-            int c = -1;
-            for (int j = 0; j < 16 && (c=bb.get())!=0; j++) {
-                sb.append(Character.valueOf((char) c));
-            }
-            System.out.println(sb);
-        }
-        /*
-        0.ModuleIndex   : 0x1
-        FltClassic1
-        1.ModuleIndex   : 0x2
-        OscC1
-        2.ModuleIndex   : 0x3
-        ModADSR1
-        3.ModuleIndex   : 0x4
-        2-Out1
-         */
+
+        FieldValues mns = ModuleNames.FIELDS.read(bb);
+        assertFieldEquals(mns,0x00,ModuleNames.Reserved);
+        assertFieldEquals(mns,0x04,ModuleNames.NameCount);
+        List<FieldValues> ns = assertSubfields(mns, 4, ModuleNames.Names);
+
+        FieldValues n = ns.removeFirst();
+        assertFieldEquals(n,0x01,ModuleName.ModuleIndex);
+        assertFieldEquals(n,"FltClassic1",ModuleName.Name);
+
+        n = ns.removeFirst();
+        assertFieldEquals(n,0x02,ModuleName.ModuleIndex);
+        assertFieldEquals(n,"OscC1",ModuleName.Name);
+
+        n = ns.removeFirst();
+        assertFieldEquals(n,0x03,ModuleName.ModuleIndex);
+        assertFieldEquals(n,"ModADSR1",ModuleName.Name);
+
+        n = ns.removeFirst();
+        assertFieldEquals(n,0x04,ModuleName.ModuleIndex);
+        assertFieldEquals(n,"2-Out1",ModuleName.Name);
 
     }
 

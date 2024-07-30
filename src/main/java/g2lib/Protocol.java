@@ -342,8 +342,10 @@ public class Protocol {
     }
 
     public enum ModuleName implements FieldEnum {
+        ModuleIndex(8),
         Name;
-        ModuleName() { f = new SizedField(this,8); }
+        ModuleName(int size) { f = new SizedField(this,size); }
+        ModuleName() { f = new StringField(this); }
         private final Field f;
         public Field field() { return f; }
         public static final Fields FIELDS = new Fields(ModuleName.class,values());

@@ -35,7 +35,7 @@ public class SubfieldsField extends AbstractField implements Field {
         public int getCount(List<FieldValues> values) {
             for (FieldValues fv : values) {
                 Optional<FieldValue> v = fv.get(f);
-                if (v.isPresent()) { return v.get().getValue(); }
+                if (v.isPresent()) { return IntValue.intValue(v.get()); }
             }
             throw new NoSuchElementException(f.field().name());
         }
@@ -72,7 +72,7 @@ public class SubfieldsField extends AbstractField implements Field {
         for (int i = 0; i < count; i++) {
             vs.add(subfields.read(bb,values));
         }
-        values.getFirst().add(new FieldValue(this, vs));
+        values.getFirst().add(new SubfieldsValue(this, vs));
     }
 
 }
