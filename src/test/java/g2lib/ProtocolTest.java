@@ -539,7 +539,27 @@ class ProtocolTest {
 
         bb = section(0x5b,buf); //Labels
         assertEquals(0x02,bb.get(2),"Location"); // settings/morph labels
+        FieldValues mls = MorphLabels.FIELDS.read(bb);
+        assertFieldEquals(mls,0x01,MorphLabels.LabelCount);
+        assertFieldEquals(mls,0x01,MorphLabels.Entry);
+        assertFieldEquals(mls,80,MorphLabels.Length);
+        List<FieldValues> ls = assertSubfields(mls, 1, MorphLabels.Labels);
+        FieldValues l = ls.removeFirst();
+        assertFieldEquals(l,1,MorphLabel.Index);
+        assertFieldEquals(l,8,MorphLabel.Length);
+        assertFieldEquals(l,8,MorphLabel.Entry);
+        assertFieldEquals(l,"Wheel",MorphLabel.Label);
 
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x01,bb.get(2),"Location"); // module labels
+        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x00,bb.get(2),"Location"); // module labels
+        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+
+        assertEquals(0x7ac8,buf.getShort(),"CRC");
+        assertFalse(buf.hasRemaining(),"Buf done");
 
     }
 

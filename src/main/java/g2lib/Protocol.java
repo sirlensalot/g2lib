@@ -351,4 +351,29 @@ public class Protocol {
         public static final Fields FIELDS = new Fields(ModuleName.class,values());
     }
 
+    public enum MorphLabels implements FieldEnum {
+        LabelCount(8),
+        Entry(8),
+        Length(8),
+        Labels(MorphLabel.FIELDS,MorphLabels.LabelCount);
+        MorphLabels(int size) { f = new SizedField(this,size); }
+        MorphLabels(Fields fs,MorphLabels ix) { f = new SubfieldsField(this,fs,ix); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(MorphLabels.class,values());
+    }
+
+
+    public enum MorphLabel implements FieldEnum {
+        Index(8),
+        Length(8),
+        Entry(8),
+        Label();
+        MorphLabel(int size) { f = new SizedField(this,size); }
+        MorphLabel() { f = new StringField(this); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(MorphLabel.class,values());
+
+    }
 }
