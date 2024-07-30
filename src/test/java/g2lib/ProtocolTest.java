@@ -573,5 +573,90 @@ class ProtocolTest {
 
     }
 
+    @Test
+    void patchDesc0() throws Exception {
+
+        ByteBuffer buf;
+        try (FileInputStream fis = new FileInputStream("data/patchdesc0.msg")) {
+            byte[] bs = fis.readAllBytes();
+            buf = ByteBuffer.wrap(bs);
+            //Util.dumpBuffer(buf);
+        }
+
+        assertEquals(0x01,buf.get()); // cmd
+        assertEquals(0x08,buf.get()); // slot 0
+        assertEquals(0x00,buf.get()); // patch version
+        BitBuffer bb;
+
+        bb = section(0x21,buf);
+        FieldValues pd = PatchDescription.FIELDS.read(bb);
+
+        assertEquals(0x2d,buf.get(),"USB extra 1");
+        assertEquals(0x00,buf.get(), "USB extra 2");
+
+        bb = section(0x4a,buf);
+        FieldValues modl = ModuleList.FIELDS.read(bb);
+        assertFieldEquals(modl,1,ModuleList.Location);
+
+        bb = section(0x4a,buf);
+        modl = ModuleList.FIELDS.read(bb);
+        assertFieldEquals(modl,0,ModuleList.Location);
+
+        //52 should be next, CABLE_LIST
+        bb = section(0x52,buf);
+        FieldValues cl = CableList.FIELDS.read(bb);
+
+        bb = section(0x52,buf);
+        cl = CableList.FIELDS.read(bb);
+
+        bb = section(0x4d,buf); //param list
+        assertEquals(2,bb.get(2),"location"); //patch parameters
+        FieldValues patchSettings = PatchParams.FIELDS.read(bb);
+
+        bb = section(0x4d,buf); //param list
+        assertEquals(1,bb.get(2),"location"); //loc1 parameters
+        FieldValues modParams = ModuleParams.FIELDS.read(bb);
+
+        bb = section(0x4d,buf); //param list
+        assertEquals(0,bb.get(2),"location"); //loc0 parameters
+        modParams = ModuleParams.FIELDS.read(bb);
+
+        bb = section(0x65,buf); //morph parameters
+        FieldValues morphParams = MorphParameters.FIELDS.read(bb);
+
+        bb = section(0x62,buf); //knob assignments
+        FieldValues knobs = KnobAssignments.FIELDS.read(bb);
+
+        bb = section(0x60,buf); //Control Assignments
+        FieldValues cass = ControlAssignments.FIELDS.read(bb);
+
+        bb = section(0x5a,buf); //Module Names
+        assertEquals(0x01,bb.get(2),"Location");
+        FieldValues mns = ModuleNames.FIELDS.read(bb);
+
+        bb = section(0x5a,buf); //Module Names
+        assertEquals(0x00,bb.get(2),"Location");
+        mns = ModuleNames.FIELDS.read(bb);
+
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x02,bb.get(2),"Location"); // settings/morph labels
+        FieldValues mls = MorphLabels.FIELDS.read(bb);
+
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x01,bb.get(2),"Location"); // module labels
+        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x00,bb.get(2),"Location"); // module labels
+        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+
+        assertEquals(0x17da,buf.getShort(),"CRC");
+        assertFalse(buf.hasRemaining(),"Buf done");
+
+    }
+
+
+
+
 
 }
