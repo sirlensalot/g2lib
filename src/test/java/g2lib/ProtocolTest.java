@@ -656,6 +656,108 @@ class ProtocolTest {
     }
 
 
+    @Test
+    public void readPatch() throws Exception {
+        ByteBuffer buf;
+        try (FileInputStream fis = new FileInputStream("data/simple synth 001.pch2")) {
+            byte[] bs = fis.readAllBytes();
+            buf = ByteBuffer.wrap(bs);
+            //Util.dumpBuffer(buf);
+        }
+        //starts with string list, strings terminate with 0x0d0a,
+        //list terminates with 0x00
+        //for now just read to 0x00
+        StringBuilder sb = new StringBuilder();
+        int c = -1;
+        for (int j = 0; j < 128 && (c=buf.get())!=0; j++) {
+            sb.append(Character.valueOf((char) c));
+        }
+        System.out.println(sb);
+
+        // crc starts here?
+        ByteBuffer slice = buf.slice();
+        //Util.dumpBuffer(slice);
+        int crc = CRC16.crc16(slice,0,slice.limit()-2);
+        System.out.printf("CRC: %x\n",crc);
+        assertEquals(0x1700,buf.getShort(),"Unknown->PatchVersion");
+
+
+        BitBuffer bb = section(0x21, buf);
+        FieldValues pd = PatchDescription.FIELDS.read(bb);
+
+        bb = section(0x4a,buf);
+        FieldValues modl = ModuleList.FIELDS.read(bb);
+        assertFieldEquals(modl,1,ModuleList.Location);
+
+        bb = section(0x4a,buf);
+        modl = ModuleList.FIELDS.read(bb);
+        assertFieldEquals(modl,0,ModuleList.Location);
+
+        bb = section(0x69,buf); //CurrentNote TODO
+
+        //52 should be next, CABLE_LIST
+        bb = section(0x52,buf);
+        FieldValues cl = CableList.FIELDS.read(bb);
+
+        bb = section(0x52,buf);
+        cl = CableList.FIELDS.read(bb);
+
+        bb = section(0x4d,buf); //param list
+        assertEquals(2,bb.get(2),"location"); //patch parameters
+        FieldValues patchSettings = PatchParams.FIELDS.read(bb);
+
+        bb = section(0x4d,buf); //param list
+        assertEquals(1,bb.get(2),"location"); //loc1 parameters
+        FieldValues modParams = ModuleParams.FIELDS.read(bb);
+
+        bb = section(0x4d,buf); //param list
+        assertEquals(0,bb.get(2),"location"); //loc0 parameters
+        modParams = ModuleParams.FIELDS.read(bb);
+
+        bb = section(0x65,buf); //morph parameters
+        FieldValues morphParams = MorphParameters.FIELDS.read(bb);
+
+        bb = section(0x62,buf); //knob assignments
+        FieldValues knobs = KnobAssignments.FIELDS.read(bb);
+
+        bb = section(0x60,buf); //Control Assignments
+        FieldValues cass = ControlAssignments.FIELDS.read(bb);
+
+
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x02,bb.get(2),"Location"); // settings/morph labels
+        FieldValues mls = MorphLabels.FIELDS.read(bb);
+
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x01,bb.get(2),"Location"); // module labels
+        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x00,bb.get(2),"Location"); // module labels
+        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+
+        bb = section(0x5a,buf); //Module Names
+        assertEquals(0x01,bb.get(2),"Location");
+        FieldValues mns = ModuleNames.FIELDS.read(bb);
+
+        bb = section(0x5a,buf); //Module Names
+        assertEquals(0x00,bb.get(2),"Location");
+        mns = ModuleNames.FIELDS.read(bb);
+
+
+        bb = section(0x6f,buf); //Text Pad
+        assertEquals(0x00,bb.limit(),"TextPad");
+        Util.dumpBuffer(buf.slice());
+
+
+        int fcrc = Util.addb(buf.get(), buf.get());
+        assertEquals(crc,fcrc,"CRC");
+        assertFalse(buf.hasRemaining(),"Buf done");
+
+
+    }
+
+
 
 
 
