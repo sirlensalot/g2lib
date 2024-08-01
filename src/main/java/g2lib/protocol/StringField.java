@@ -26,4 +26,8 @@ public class StringField extends AbstractField implements Field {
         values.getFirst().add(new StringValue(this, sb.toString()));
     }
 
+    @Override
+    public Type type() {
+        return Type.StringType;
+    }
 }

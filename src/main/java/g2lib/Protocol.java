@@ -3,6 +3,8 @@ package g2lib;
 import g2lib.protocol.*;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
 
 public class Protocol {
 
@@ -95,7 +97,7 @@ public class Protocol {
         Green(1),
         Purple(1),
         White(1),
-        Monopoly(2),
+        MonoPoly(2),
         Variation(8),
         Category(8);
 
@@ -235,6 +237,9 @@ public class Protocol {
         private final Field f;
         public Field field() { return f; }
         public static final Fields FIELDS = new Fields(Data8.class,values());
+        public static List<FieldValues> asSubfield(int... values) {
+            return Arrays.stream(values).boxed().map(v -> FIELDS.init().add(Datum.value(v))).toList();
+        }
     }
 
     public enum ModuleParams implements FieldEnum {

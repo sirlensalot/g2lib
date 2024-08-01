@@ -8,4 +8,34 @@ public interface Field {
     String name();
 
     void read(BitBuffer bb, List<FieldValues> values);
+
+    Class<?> getFieldEnumClass();
+
+    int ordinal();
+
+    public enum Type {
+        IntType,
+        StringType,
+        SubfieldType;
+    }
+
+    Type type();
+
+    default Field guardType(Type t) {
+        if (t != type()) {
+            throw new IllegalArgumentException(String.format("Field type mismatch: %s: %s", t, this));
+        }
+        return this;
+    }
+
+    default Field guardAdd(Field f) {
+        if (f.getFieldEnumClass() != getFieldEnumClass()) {
+            throw new IllegalArgumentException(String.format("Field enum class mismatch: %s: %s", f, this));
+        }
+        if (ordinal() + 1 != f.ordinal()) {
+            throw new IllegalArgumentException(String.format("Out of order: %s: %s", f, this));
+        }
+        return this;
+    }
+
 }

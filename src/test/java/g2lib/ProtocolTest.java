@@ -104,24 +104,24 @@ class ProtocolTest {
         BitBuffer bb;
         bb = section(0x21,buf);
 
-        FieldValues pd = PatchDescription.FIELDS.read(bb);
-        assertSubfieldValues(pd,"PatchDesc reserved",PatchDescription.Reserved,Data8.Datum,
-                1,0xfc,0,0,1,0,0);
-        assertFieldEquals(pd,0x04, PatchDescription.Reserved2);
-        assertFieldEquals(pd,0x05, PatchDescription.Voices);
-        assertFieldEquals(pd,374, PatchDescription.Height);
-        assertFieldEquals(pd,0x01, PatchDescription.Unk2);
-        assertFieldEquals(pd,0x01, PatchDescription.Red);
-        assertFieldEquals(pd,0x01, PatchDescription.Blue);
-        assertFieldEquals(pd,0x01, PatchDescription.Yellow);
-        assertFieldEquals(pd,0x01, PatchDescription.Orange);
-        assertFieldEquals(pd,0x01, PatchDescription.Green);
-        assertFieldEquals(pd,0x01, PatchDescription.Purple);
-        assertFieldEquals(pd,0x01, PatchDescription.White);
-        assertFieldEquals(pd,0x00, PatchDescription.Monopoly);
-        assertFieldEquals(pd,0x01, PatchDescription.Variation);
-        assertFieldEquals(pd,0x00, PatchDescription.Category);
-
+        FieldValues pd = PatchDescription.FIELDS.values(
+                PatchDescription.Reserved.value(Data8.asSubfield(1, 0xfc, 0, 0, 1, 0, 0)),
+                PatchDescription.Reserved2.value(0x04),
+                PatchDescription.Voices.value(0x05),
+                PatchDescription.Height.value(374),
+                PatchDescription.Unk2.value(0x01),
+                PatchDescription.Red.value(0x01),
+                PatchDescription.Blue.value(0x01),
+                PatchDescription.Yellow.value(0x01),
+                PatchDescription.Orange.value(0x01),
+                PatchDescription.Green.value(0x01),
+                PatchDescription.Purple.value(0x01),
+                PatchDescription.White.value(0x01),
+                PatchDescription.MonoPoly.value(0x00),
+                PatchDescription.Variation.value(0x01),
+                PatchDescription.Category.value(0x00)
+        );
+        assertEquals(pd,PatchDescription.FIELDS.read(bb),"PatchDescription");
 
         assertEquals(0x2d,buf.get(),"USB extra 1");
         assertEquals(0x00,buf.get(), "USB extra 2");
@@ -589,7 +589,8 @@ class ProtocolTest {
         BitBuffer bb;
 
         bb = section(0x21,buf);
-        FieldValues pd = PatchDescription.FIELDS.read(bb);
+        PatchDescription.FIELDS.read(bb);
+
 
         assertEquals(0x2d,buf.get(),"USB extra 1");
         assertEquals(0x00,buf.get(), "USB extra 2");
@@ -683,7 +684,25 @@ class ProtocolTest {
 
 
         BitBuffer bb = section(0x21, buf);
-        FieldValues pd = PatchDescription.FIELDS.read(bb);
+        FieldValues pd = PatchDescription.FIELDS.values(
+                PatchDescription.Reserved.value(Data8.asSubfield(0, 0, 0, 0, 0, 0, 0)), //!USB
+                PatchDescription.Reserved2.value(0x00), //!USB
+                PatchDescription.Voices.value(0x05),
+                PatchDescription.Height.value(0), //!USB
+                PatchDescription.Unk2.value(0x02), //!USB
+                PatchDescription.Red.value(0x01),
+                PatchDescription.Blue.value(0x01),
+                PatchDescription.Yellow.value(0x01),
+                PatchDescription.Orange.value(0x01),
+                PatchDescription.Green.value(0x01),
+                PatchDescription.Purple.value(0x01),
+                PatchDescription.White.value(0x01),
+                PatchDescription.MonoPoly.value(0x00),
+                PatchDescription.Variation.value(0x00), //!USB
+                PatchDescription.Category.value(0x00)
+        );
+        FieldValues pd_ = PatchDescription.FIELDS.read(bb);
+        assertEquals(pd,pd_,"PatchDescription");
 
         bb = section(0x4a,buf);
         FieldValues modl = ModuleList.FIELDS.read(bb);

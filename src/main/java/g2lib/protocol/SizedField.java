@@ -24,4 +24,8 @@ public class SizedField extends AbstractField implements Field {
         values.getFirst().add(new IntValue(this, bb.get(size)));
     }
 
+    @Override
+    public Type type() {
+        return Type.IntType;
+    }
 }

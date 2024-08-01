@@ -29,9 +29,17 @@ public class Fields {
     }
 
     public FieldValues read(BitBuffer bb, List<FieldValues> context) {
-        FieldValues l = new FieldValues(fields.size());
+        FieldValues l = init();
         context.addFirst(l);
         fields.forEach(f -> f.read(bb, context));
         return context.removeFirst();
+    }
+
+    public FieldValues init() {
+        return new FieldValues(fields.size());
+    }
+
+    public FieldValues values(FieldValue... vs) {
+        return init().addAll(vs);
     }
 }

@@ -1,6 +1,6 @@
 package g2lib.protocol;
 
-public class AbstractField {
+public abstract class AbstractField implements Field {
     public final Enum<?> enum_;
 
     public <T extends Enum<T>> AbstractField(Enum<T> e) {
@@ -19,5 +19,13 @@ public class AbstractField {
     @Override
     public int hashCode() {
         return enum_.hashCode();
+    }
+
+    public Class<?> getFieldEnumClass() {
+        return enum_.getDeclaringClass();
+    }
+
+    public int ordinal() {
+        return enum_.ordinal();
     }
 }

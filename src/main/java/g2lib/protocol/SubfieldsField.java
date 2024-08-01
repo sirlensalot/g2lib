@@ -75,4 +75,8 @@ public class SubfieldsField extends AbstractField implements Field {
         values.getFirst().add(new SubfieldsValue(this, vs));
     }
 
+    @Override
+    public Type type() {
+        return Type.SubfieldType;
+    }
 }

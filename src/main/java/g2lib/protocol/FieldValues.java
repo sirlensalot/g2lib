@@ -1,6 +1,7 @@
 package g2lib.protocol;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,8 +12,19 @@ public class FieldValues {
         this.values = new ArrayList<>(count);
     }
 
-    public void add(FieldValue v) {
+    public FieldValues add(FieldValue v) {
+        if (!values.isEmpty()) {
+            values.getLast().field().guardAdd(v.field());
+        }
         values.add(v);
+        return this;
+    }
+
+    public FieldValues addAll(FieldValue... vs) {
+        for (FieldValue f : vs) {
+            add(f);
+        }
+        return this;
     }
 
     public Optional<FieldValue> get(FieldEnum f) {
@@ -29,5 +41,15 @@ public class FieldValues {
     @Override
     public String toString() {
         return values.toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof FieldValues && ((FieldValues) obj).values.equals(values);
+    }
+
+    @Override
+    public int hashCode() {
+        return values.hashCode();
     }
 }

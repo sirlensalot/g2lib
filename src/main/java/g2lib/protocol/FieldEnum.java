@@ -22,4 +22,16 @@ public interface FieldEnum {
     default Optional<List<FieldValues>> subfieldsValue(FieldValues values) {
         return get(values).flatMap(fv -> Optional.of(SubfieldsValue.subfieldsValue(fv)));
     }
+
+    default FieldValue value(int v) {
+        return new IntValue(field().guardType(Field.Type.IntType),v);
+    }
+
+    default FieldValue value(String v) {
+        return new StringValue(field().guardType(Field.Type.StringType),v);
+    }
+
+    default FieldValue value(List<FieldValues> v) {
+        return new SubfieldsValue(field().guardType(Field.Type.SubfieldType),v);
+    }
 }
