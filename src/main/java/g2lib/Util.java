@@ -1,5 +1,6 @@
 package g2lib;
 
+import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 
 public class Util {
@@ -54,6 +55,15 @@ public class Util {
             b.insert(0, '0');
         }
         return b.toString();
+    }
+
+    public static ByteBuffer readFile(String path) throws Exception {
+        ByteBuffer buf;
+        try (FileInputStream fis = new FileInputStream(path)) {
+            byte[] bs = fis.readAllBytes();
+            buf = ByteBuffer.wrap(bs);
+        }
+        return buf;
     }
 
 }

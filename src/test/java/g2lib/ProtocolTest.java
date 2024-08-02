@@ -91,12 +91,7 @@ class ProtocolTest {
     @Test
     void patchDesc() throws Exception {
 
-        ByteBuffer buf;
-        try (FileInputStream fis = new FileInputStream("data/patchdesc.msg")) {
-            byte[] bs = fis.readAllBytes();
-            buf = ByteBuffer.wrap(bs);
-            //Util.dumpBuffer(buf);
-        }
+        ByteBuffer buf = Util.readFile("data/patchdesc.msg");
 
         assertEquals(0x01,buf.get()); // cmd
         assertEquals(0x09,buf.get()); // slot 1
@@ -576,12 +571,7 @@ class ProtocolTest {
     @Test
     void patchDesc0() throws Exception {
 
-        ByteBuffer buf;
-        try (FileInputStream fis = new FileInputStream("data/patchdesc0.msg")) {
-            byte[] bs = fis.readAllBytes();
-            buf = ByteBuffer.wrap(bs);
-            //Util.dumpBuffer(buf);
-        }
+        ByteBuffer buf = Util.readFile("data/patchdesc0.msg");
 
         assertEquals(0x01,buf.get()); // cmd
         assertEquals(0x08,buf.get()); // slot 0
@@ -660,26 +650,17 @@ class ProtocolTest {
 
     @Test
     public void readPatch() throws Exception {
-        ByteBuffer buf;
-        try (FileInputStream fis = new FileInputStream("data/simple synth 001.pch2")) {
-            byte[] bs = fis.readAllBytes();
-            buf = ByteBuffer.wrap(bs);
-            //Util.dumpBuffer(buf);
-        }
+        ByteBuffer buf = Util.readFile("data/simple synth 001.pch2");
         ByteBuffer header = patchHeader();
-        header.rewind();
-        byte[] h = new byte[header.remaining()];
-        header.get(h);
-
-        byte[] h1 = new byte[h.length];
-        buf.get(h1);
-        assertArrayEquals(h,h1,"header");
+        while (header.hasRemaining()) {
+            assertEquals(header.get(),buf.get(),"header check");
+        }
 
         // crc starts here
         ByteBuffer slice = buf.slice();
         int crc = CRC16.crc16(slice,0,slice.limit()-2);
-        assertEquals(0x1700,Util.getShort(buf),"Unknown->PatchVersion");
-
+        assertEquals(0x17,buf.get(),"Unknown");
+        assertEquals(0x00,buf.get(),"PatchVersion");
 
         BitBuffer bb = section(0x21, buf);
         FieldValues pd = PatchDescription.FIELDS.values(
@@ -801,6 +782,7 @@ class ProtocolTest {
             header.put((byte)0x0d).put((byte)0x0a);
         }
         header.put((byte)0);
+        header.rewind();
         return header;
     }
 
