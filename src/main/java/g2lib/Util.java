@@ -36,6 +36,10 @@ public class Util {
         return (b2i(msb) << 8) + b2i(lsb);
     }
 
+    public static int getShort(ByteBuffer buffer) {
+        return addb(buffer.get(),buffer.get());
+    }
+
     public static byte[] asBytes(int... vals) {
         byte[] bytes = new byte[vals.length];
         for (int i = 0; i < vals.length; i++) {

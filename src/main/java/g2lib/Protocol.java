@@ -13,7 +13,7 @@ public class Protocol {
         if (t != type) {
             throw new IllegalArgumentException(String.format("Section incorrect %x %x",type,t));
         }
-        return BitBuffer.sliceAhead(buf,buf.getShort());
+        return BitBuffer.sliceAhead(buf,Util.getShort(buf));
     }
 
     public enum CableList implements FieldEnum {
@@ -414,4 +414,36 @@ public class Protocol {
         public static final Fields FIELDS = new Fields(MorphLabel.class,values());
 
     }
+
+    public enum CurrentNote implements FieldEnum {
+        Note(7),
+        Attack(7),
+        Release(7),
+        NoteCount(5),
+        Notes(NoteData.FIELDS,CurrentNote.NoteCount);
+        CurrentNote(int size) { f = new SizedField(this,size); }
+        CurrentNote(Fields fs,FieldEnum e) {
+            final SubfieldsField.FieldCount c = new SubfieldsField.FieldCount(e);
+            f = new SubfieldsField(this, fs, new SubfieldsField.SubfieldCount() {
+                @Override
+                public int getCount(List<FieldValues> values) {
+                    return c.getCount(values) + 1;
+                }
+            });
+        }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(CurrentNote.class,values());
+    }
+
+    public enum NoteData implements FieldEnum {
+        Note(7),
+        Attack(7),
+        Release(7);
+        NoteData(int size) { f = new SizedField(this,size); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(NoteData.class,values());
+    }
+
 }

@@ -53,7 +53,7 @@ public class SubfieldsField extends AbstractField implements Field {
         this(e,subfields,constant(size));
     }
 
-    private <T extends Enum<T>> SubfieldsField(Enum<T> e, Fields subfields, SubfieldCount subfieldCount) {
+    public <T extends Enum<T>> SubfieldsField(Enum<T> e, Fields subfields, SubfieldCount subfieldCount) {
         super(e);
         this.subfields = subfields;
         this.subfieldCount = subfieldCount;

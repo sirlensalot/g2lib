@@ -22,6 +22,9 @@ public class BitBuffer {
 
     public int limit() { return buffer.limit(); }
 
+    public int getBitLength() { return blength; }
+    public int getBitIndex() { return bindex; }
+
     public int get() {
         return get(8);
     }

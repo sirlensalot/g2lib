@@ -568,7 +568,7 @@ class ProtocolTest {
         assertEquals(0x00,bb.get(2),"Location"); // module labels
         assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
 
-        assertEquals(0x7ac8,buf.getShort(),"CRC");
+        assertEquals(0x7ac8,Util.getShort(buf),"CRC");
         assertFalse(buf.hasRemaining(),"Buf done");
 
     }
@@ -606,6 +606,7 @@ class ProtocolTest {
         //52 should be next, CABLE_LIST
         bb = section(0x52,buf);
         FieldValues cl = CableList.FIELDS.read(bb);
+        assertEquals(4,cl.values.size());
 
         bb = section(0x52,buf);
         cl = CableList.FIELDS.read(bb);
@@ -651,7 +652,7 @@ class ProtocolTest {
         assertEquals(0x00,bb.get(2),"Location"); // module labels
         assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
 
-        assertEquals(0x17da,buf.getShort(),"CRC");
+        assertEquals(0x17da,Util.getShort(buf),"CRC");
         assertFalse(buf.hasRemaining(),"Buf done");
 
     }
@@ -665,22 +666,19 @@ class ProtocolTest {
             buf = ByteBuffer.wrap(bs);
             //Util.dumpBuffer(buf);
         }
-        //starts with string list, strings terminate with 0x0d0a,
-        //list terminates with 0x00
-        //for now just read to 0x00
-        StringBuilder sb = new StringBuilder();
-        int c = -1;
-        for (int j = 0; j < 128 && (c=buf.get())!=0; j++) {
-            sb.append(Character.valueOf((char) c));
-        }
-        System.out.println(sb);
+        ByteBuffer header = patchHeader();
+        header.rewind();
+        byte[] h = new byte[header.remaining()];
+        header.get(h);
 
-        // crc starts here?
+        byte[] h1 = new byte[h.length];
+        buf.get(h1);
+        assertArrayEquals(h,h1,"header");
+
+        // crc starts here
         ByteBuffer slice = buf.slice();
-        //Util.dumpBuffer(slice);
         int crc = CRC16.crc16(slice,0,slice.limit()-2);
-        System.out.printf("CRC: %x\n",crc);
-        assertEquals(0x1700,buf.getShort(),"Unknown->PatchVersion");
+        assertEquals(0x1700,Util.getShort(buf),"Unknown->PatchVersion");
 
 
         BitBuffer bb = section(0x21, buf);
@@ -712,7 +710,21 @@ class ProtocolTest {
         modl = ModuleList.FIELDS.read(bb);
         assertFieldEquals(modl,0,ModuleList.Location);
 
-        bb = section(0x69,buf); //CurrentNote TODO
+        bb = section(0x69,buf); //CurrentNote
+        FieldValues cns = CurrentNote.FIELDS.read(bb);
+
+        assertFieldEquals(cns,0x40,CurrentNote.Note);
+        assertFieldEquals(cns,0x00,CurrentNote.Attack);
+        assertFieldEquals(cns,0x00,CurrentNote.Release);
+        assertFieldEquals(cns,0x05,CurrentNote.NoteCount); //note that this stores actual count - 1
+        List<FieldValues> ns = assertSubfields(cns, 6, CurrentNote.Notes);
+        for (int i = 0; i < 6; i++) {
+            FieldValues n = ns.removeFirst();
+            assertFieldEquals(n,0x40,NoteData.Note);
+            assertFieldEquals(n,0x00,NoteData.Attack);
+            assertFieldEquals(n,0x00,NoteData.Release);
+        }
+
 
         //52 should be next, CABLE_LIST
         bb = section(0x52,buf);
@@ -765,19 +777,32 @@ class ProtocolTest {
 
 
         bb = section(0x6f,buf); //Text Pad
-        assertEquals(0x00,bb.limit(),"TextPad");
-        Util.dumpBuffer(buf.slice());
+        assertEquals(0x00,bb.limit(),"TextPad"); //empty
 
 
-        int fcrc = Util.addb(buf.get(), buf.get());
+        int fcrc = Util.getShort(buf);
         assertEquals(crc,fcrc,"CRC");
         assertFalse(buf.hasRemaining(),"Buf done");
 
 
     }
 
-
-
+    private static ByteBuffer patchHeader() {
+        ByteBuffer header = ByteBuffer.allocate(80);
+        for (String s : new String[]{
+                "Version=Nord Modular G2 File Format 1",
+                "Type=Patch",
+                "Version=23",
+                "Info=BUILD 320"
+        }) {
+            for (char c : s.toCharArray()) {
+                header.put((byte) c);
+            }
+            header.put((byte)0x0d).put((byte)0x0a);
+        }
+        header.put((byte)0);
+        return header;
+    }
 
 
 }
