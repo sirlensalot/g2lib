@@ -7,7 +7,7 @@ public class Main {
 
 
     private static void parsePDesc(ByteBuffer data) {
-        try (FileOutputStream fos = new FileOutputStream("data/patchdesc.msg")) {
+        try (FileOutputStream fos = new FileOutputStream("data/patchdesc1.msg")) {
             data.rewind();
             byte[] bs = new byte[data.limit()];
             data.get(bs);

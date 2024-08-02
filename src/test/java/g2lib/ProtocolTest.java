@@ -1,7 +1,9 @@
 package g2lib;
 
 import g2lib.protocol.FieldEnum;
+import g2lib.protocol.FieldValue;
 import g2lib.protocol.FieldValues;
+import g2lib.protocol.SubfieldsValue;
 import org.junit.jupiter.api.Test;
 
 import java.io.FileInputStream;
@@ -91,7 +93,7 @@ class ProtocolTest {
     @Test
     void patchDesc() throws Exception {
 
-        ByteBuffer buf = Util.readFile("data/patchdesc.msg");
+        ByteBuffer buf = Util.readFile("data/patchdesc1.msg");
 
         assertEquals(0x01,buf.get()); // cmd
         assertEquals(0x09,buf.get()); // slot 1
@@ -121,247 +123,11 @@ class ProtocolTest {
         assertEquals(0x2d,buf.get(),"USB extra 1");
         assertEquals(0x00,buf.get(), "USB extra 2");
 
-        bb = section(0x4a,buf);
-        assertEquals(27,bb.limit(), "module list len");
-        FieldValues modl = ModuleList.FIELDS.read(bb);
-        assertFieldEquals(modl,1,ModuleList.Location);
-        List<FieldValues> mods = assertSubfields(modl, 4, ModuleList.Modules);
+        testModules(buf,0,1,2);
 
-        FieldValues module;
-        List<FieldValues> modes;
+        testCableLists(buf,0,1,2,0,1);
 
-        //Util.dumpBuffer(b2);
-        module = mods.removeFirst();
-        assertFieldEquals(module,0x5c, Module_.Id); //filter classic
-        assertFieldEquals(module,0x01, Module_.Index);
-        assertFieldEquals(module,0x00, Module_.Horiz);
-        assertFieldEquals(module,0x09, Module_.Vert);
-        assertFieldEquals(module,0x00, Module_.Color);
-        assertFieldEquals(module,0x00, Module_.Uprate);
-        assertFieldEquals(module,0x00, Module_.Leds);
-        assertFieldEquals(module,0x00, Module_.Reserved);
-        assertFieldEquals(module,0x00, Module_.ModeCount);
-        assertSubfields(module, 0, Module_.Modes);
-
-        module = mods.removeFirst();
-        assertFieldEquals(module,0x09, Module_.Id); //osc c
-        assertFieldEquals(module,0x02, Module_.Index);
-        assertFieldEquals(module,0x00, Module_.Horiz);
-        assertFieldEquals(module,0x06, Module_.Vert);
-        assertFieldEquals(module,0x00, Module_.Color);
-        assertFieldEquals(module,0x00, Module_.Uprate);
-        assertFieldEquals(module,0x00, Module_.Leds);
-        assertFieldEquals(module,0x00, Module_.Reserved);
-        assertFieldEquals(module,0x01, Module_.ModeCount);
-        modes = assertSubfields(module, 1, Module_.Modes);
-        assertFieldEquals(modes.getFirst(),0x02, ModuleModes.Data);
-
-        module = mods.removeFirst();
-        assertFieldEquals(module,0x17, Module_.Id);  // ModADSR
-        assertFieldEquals(module,0x03, Module_.Index);
-        assertFieldEquals(module,0x00, Module_.Horiz);
-        assertFieldEquals(module,0x0d, Module_.Vert);
-        assertFieldEquals(module,0x00, Module_.Color);
-        assertFieldEquals(module,0x01, Module_.Uprate);
-        assertFieldEquals(module,0x00, Module_.Leds);
-        assertFieldEquals(module,0x00, Module_.Reserved);
-        assertFieldEquals(module,0x00, Module_.ModeCount);
-        assertSubfields(module, 0, Module_.Modes);
-
-
-        module = mods.removeFirst();
-        assertFieldEquals(module,0x04, Module_.Id); // 2-out
-        assertFieldEquals(module,0x04, Module_.Index);
-        assertFieldEquals(module,0x00, Module_.Horiz);
-        assertFieldEquals(module,0x12, Module_.Vert);
-        assertFieldEquals(module,0x00, Module_.Color);
-        assertFieldEquals(module,0x00, Module_.Uprate);
-        assertFieldEquals(module,0x01, Module_.Leds);
-        assertFieldEquals(module,0x00, Module_.Reserved);
-        assertFieldEquals(module,0x00, Module_.ModeCount);
-        assertSubfields(module, 0, Module_.Modes);
-
-        bb = section(0x4a,buf);
-        assertEquals(21,bb.limit(), "module list0 len");
-        modl = ModuleList.FIELDS.read(bb);
-        assertFieldEquals(modl,0,ModuleList.Location);
-        mods = assertSubfields(modl, 3, ModuleList.Modules);
-
-
-        module = mods.removeFirst();
-        assertFieldEquals(module,0x7f, Module_.Id); // FX Input
-        assertFieldEquals(module,0x01, Module_.Index);
-        assertFieldEquals(module,0x01, Module_.Horiz);
-        assertFieldEquals(module,0x02, Module_.Vert);
-        assertFieldEquals(module,0x00, Module_.Color);
-        assertFieldEquals(module,0x00, Module_.Uprate);
-        assertFieldEquals(module,0x01, Module_.Leds);
-        assertFieldEquals(module,0x00, Module_.Reserved);
-        assertFieldEquals(module,0x00, Module_.ModeCount);
-        assertSubfields(module, 0, Module_.Modes);
-
-
-        module = mods.removeFirst();
-        assertFieldEquals(module,0xb6, Module_.Id);//Delay Stereo
-        assertFieldEquals(module,0x02, Module_.Index);
-        assertFieldEquals(module,0x01, Module_.Horiz);
-        assertFieldEquals(module,0x04, Module_.Vert);
-        assertFieldEquals(module,0x00, Module_.Color);
-        assertFieldEquals(module,0x00, Module_.Uprate);
-        assertFieldEquals(module,0x00, Module_.Leds);
-        assertFieldEquals(module,0x00, Module_.Reserved);
-        assertFieldEquals(module,0x01, Module_.ModeCount);
-        modes = assertSubfields(module, 1, Module_.Modes);
-        assertFieldEquals(modes.getFirst(),0x00, ModuleModes.Data);
-
-
-        module = mods.removeFirst();
-        assertFieldEquals(module,0x04, Module_.Id); //2-out
-        assertFieldEquals(module,0x03, Module_.Index);
-        assertFieldEquals(module,0x01, Module_.Horiz);
-        assertFieldEquals(module,0x09, Module_.Vert);
-        assertFieldEquals(module,0x00, Module_.Color);
-        assertFieldEquals(module,0x00, Module_.Uprate);
-        assertFieldEquals(module,0x01, Module_.Leds);
-        assertFieldEquals(module,0x00, Module_.Reserved);
-        assertFieldEquals(module,0x00, Module_.ModeCount);
-        assertSubfields(module, 0, Module_.Modes);
-
-        //52 should be next, CABLE_LIST
-        bb = section(0x52,buf);
-        assertEquals(0xf,bb.limit(), "cable list1 len");
-        FieldValues cl = CableList.FIELDS.read(bb);
-        assertFieldEquals(cl,1,CableList.Location);
-        assertFieldEquals(cl,0,CableList.Reserved);
-        assertFieldEquals(cl,3,CableList.CableCount);
-        List<FieldValues> cs = assertSubfields(cl, 3, CableList.Cables);
-
-        FieldValues cable = cs.removeFirst();
-        assertFieldEquals(cable,0x00, Cable.Color);
-        assertFieldEquals(cable,0x02, Cable.ModuleFrom);
-        assertFieldEquals(cable,0x00, Cable.ConnectorFrom);
-        assertFieldEquals(cable,0x01, Cable.LinkType);
-        assertFieldEquals(cable,0x01, Cable.ModuleTo);
-        assertFieldEquals(cable,0x00, Cable.ConnectorTo);
-
-        cable = cs.removeFirst();
-        assertFieldEquals(cable,0x00, Cable.Color);
-        assertFieldEquals(cable,0x01, Cable.ModuleFrom);
-        assertFieldEquals(cable,0x00, Cable.ConnectorFrom);
-        assertFieldEquals(cable,0x01, Cable.LinkType);
-        assertFieldEquals(cable,0x03, Cable.ModuleTo);
-        assertFieldEquals(cable,0x05, Cable.ConnectorTo);
-
-        cable = cs.removeFirst();
-        assertFieldEquals(cable,0x00, Cable.Color);
-        assertFieldEquals(cable,0x03, Cable.ModuleFrom);
-        assertFieldEquals(cable,0x01, Cable.ConnectorFrom);
-        assertFieldEquals(cable,0x01, Cable.LinkType);
-        assertFieldEquals(cable,0x04, Cable.ModuleTo);
-        assertFieldEquals(cable,0x00, Cable.ConnectorTo);
-
-        bb = section(0x52,buf);
-        assertEquals(0xf,bb.limit(), "cable list0 len");
-        cl = CableList.FIELDS.read(bb);
-        assertFieldEquals(cl,0,CableList.Location);
-        assertFieldEquals(cl,0,CableList.Reserved);
-        assertFieldEquals(cl,3,CableList.CableCount);
-        cs = assertSubfields(cl, 3, CableList.Cables);
-
-        cable = cs.removeFirst();
-        assertFieldEquals(cable,0x00, Cable.Color);
-        assertFieldEquals(cable,0x01, Cable.ModuleFrom);
-        assertFieldEquals(cable,0x00, Cable.ConnectorFrom);
-        assertFieldEquals(cable,0x01, Cable.LinkType);
-        assertFieldEquals(cable,0x02, Cable.ModuleTo);
-        assertFieldEquals(cable,0x00, Cable.ConnectorTo);
-
-        cable = cs.removeFirst();
-        assertFieldEquals(cable,0x00, Cable.Color);
-        assertFieldEquals(cable,0x02, Cable.ModuleFrom);
-        assertFieldEquals(cable,0x00, Cable.ConnectorFrom);
-        assertFieldEquals(cable,0x01, Cable.LinkType);
-        assertFieldEquals(cable,0x03, Cable.ModuleTo);
-        assertFieldEquals(cable,0x00, Cable.ConnectorTo);
-
-        cable = cs.removeFirst();
-        assertFieldEquals(cable,0x00, Cable.Color);
-        assertFieldEquals(cable,0x02, Cable.ModuleFrom);
-        assertFieldEquals(cable,0x01, Cable.ConnectorFrom);
-        assertFieldEquals(cable,0x01, Cable.LinkType);
-        assertFieldEquals(cable,0x03, Cable.ModuleTo);
-        assertFieldEquals(cable,0x01, Cable.ConnectorTo);
-
-        bb = section(0x4d,buf); //param list
-        assertEquals(357,bb.limit(), "parameters2 len");
-        assertEquals(2,bb.get(2),"location"); //patch parameters
-
-
-        FieldValues patchSettings = PatchParams.FIELDS.read(bb);
-        //System.out.println(patchSettings);
-        int vc = assertFieldEquals(patchSettings,0x0a, PatchParams.VariationCount);
-        assertFieldEquals(patchSettings,0x07, PatchParams.SectionCount);
-        sectionHeader(patchSettings, PatchParams.S1,1,16);
-        sectionHeader(patchSettings, PatchParams.S2,2,2);
-        sectionHeader(patchSettings, PatchParams.S3,3,2);
-        sectionHeader(patchSettings, PatchParams.S4,4,2);
-        sectionHeader(patchSettings, PatchParams.S5,5,3);
-        sectionHeader(patchSettings, PatchParams.S6,6,4);
-        sectionHeader(patchSettings, PatchParams.S7,7,2);
-        List<FieldValues> morphs = assertSubfields(patchSettings, vc, PatchParams.Morphs);
-        List<FieldValues> s2 = assertSubfields(patchSettings, vc, PatchParams.Section2);
-        List<FieldValues> s3 = assertSubfields(patchSettings, vc, PatchParams.Section3);
-        List<FieldValues> s4 = assertSubfields(patchSettings, vc, PatchParams.Section4);
-        List<FieldValues> s5 = assertSubfields(patchSettings, vc, PatchParams.Section5);
-        List<FieldValues> s6 = assertSubfields(patchSettings, vc, PatchParams.Section6);
-        List<FieldValues> s7 = assertSubfields(patchSettings, vc, PatchParams.Section7);
-        for (int i = 0; i < vc; i++) {
-            FieldValues ms = morphs.get(i);
-            assertFieldEquals(ms,i,MorphSettings.Variation);
-            List<FieldValues> mdials = assertSubfields(ms, 8, MorphSettings.Dials);
-            List<FieldValues> mmodes = assertSubfields(ms, 8, MorphSettings.Modes);
-            for (int j = 0; j < 8; j++) {
-                assertFieldEquals(mdials.get(j),0x00, Data7.Datum);
-                assertFieldEquals(mmodes.get(j),0x01, Data7.Datum);
-            }
-            assertFieldEquals(s2.get(i),i,Settings2.Variation);
-            assertFieldEquals(s3.get(i),i,Settings3.Variation);
-            assertFieldEquals(s4.get(i),i,Settings4.Variation);
-            assertFieldEquals(s5.get(i),i,Settings5.Variation);
-            assertFieldEquals(s6.get(i),i,Settings6.Variation);
-            assertFieldEquals(s7.get(i),i,Settings7.Variation);
-
-            assertFieldEquals(s3.get(i),0x00,Settings3.Glide);
-            assertFieldEquals(s3.get(i),0x1c,Settings3.GlideTime);
-
-            assertFieldEquals(s5.get(i),0x00,Settings5.Vibrato);
-            assertFieldEquals(s5.get(i),0x32,Settings5.Cents);
-            assertFieldEquals(s5.get(i),0x40,Settings5.Rate);
-
-            assertFieldEquals(s6.get(i),0x00,Settings6.Arpeggiator);
-            assertFieldEquals(s6.get(i),0x03,Settings6.Time);
-            assertFieldEquals(s6.get(i),0x00,Settings6.Type);
-            assertFieldEquals(s6.get(i),0x00,Settings6.Octaves);
-
-            if (i == 1) {
-                assertFieldEquals(s2.get(i),0x00,Settings2.PatchVol);
-            } else {
-                assertFieldEquals(s2.get(i),0x64,Settings2.PatchVol);
-            }
-            assertFieldEquals(s2.get(i),0x01,Settings2.ActiveMuted);
-            if (i == 0 || i == 1) {
-                assertFieldEquals(s4.get(i),0x05,Settings4.Semi);
-                assertFieldEquals(s7.get(i),0x01,Settings7.OctShift);
-            } else {
-                assertFieldEquals(s4.get(i),0x01,Settings4.Semi);
-                assertFieldEquals(s7.get(i),0x02,Settings7.OctShift);
-            }
-
-            assertFieldEquals(s4.get(i),0x01,Settings4.Bend);
-
-            assertFieldEquals(s7.get(i),0x01,Settings7.Sustain);
-
-        }
+        int vc = testPatchSettings(buf,10);
 
         bb = section(0x4d,buf); //param list
         assertEquals(286,bb.limit(), "parameters1 len");
@@ -405,7 +171,7 @@ class ProtocolTest {
         }
 
         bb = section(0x4d,buf); //param list
-        assertEquals(187,bb.limit(), "parameters0 len");
+        assertEquals(135,bb.limit(), "parameters0 len");
         assertEquals(0,bb.get(2),"location"); //loc0 parameters
 
         modParams = ModuleParams.FIELDS.read(bb);
@@ -422,10 +188,11 @@ class ProtocolTest {
             assertModParams(v++,vps,0,1,1);
         }
 
-        vps = assertVarParams(mps, vc, 2, 11); //Delay Stereo
+        //dumpFieldValues(modParams);
+        vps = assertVarParams(mps, vc, 2, 5); //Mixer 2-1A
         v = 0;
         while (v < vc) {
-            assertModParams(v++,vps,64, 64, 64, 64, 0, 0, 0, 127, 64, 1, 0);
+            assertModParams(v++,vps,100,1,100,v==2?0:1,0);
         }
 
         vps = assertVarParams(mps, vc, 3, 3); //2 out
@@ -535,7 +302,7 @@ class ProtocolTest {
 
         n = ns.removeFirst();
         assertFieldEquals(n,0x02,ModuleName.ModuleIndex);
-        assertFieldEquals(n,"DlyStereo1",ModuleName.Name);
+        assertFieldEquals(n,"Mix2-1A1",ModuleName.Name);
 
         n = ns.removeFirst();
         assertFieldEquals(n,0x03,ModuleName.ModuleIndex);
@@ -557,15 +324,294 @@ class ProtocolTest {
 
         bb = section(0x5b,buf); //Labels
         assertEquals(0x01,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch
 
         bb = section(0x5b,buf); //Labels
         assertEquals(0x00,bb.get(2),"Location"); // module labels
         assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
 
-        assertEquals(0x7ac8,Util.getShort(buf),"CRC");
+        assertEquals(0xed77,Util.getShort(buf),"CRC");
         assertFalse(buf.hasRemaining(),"Buf done");
 
+    }
+
+    private static void dumpFieldValues(FieldValues fv) {
+        dumpFieldValues(fv,0);
+    }
+    private static void dumpFieldValues(FieldValues fv,int indent) {
+        Runnable ind = () -> {
+            for (int i = 0; i < indent; i++) {
+                System.out.print("  ");
+            }
+        };
+        ind.run();;
+        for (int i = 0; i < fv.values.size(); i++) {
+            if (i > 0) {
+                System.out.print(", ");
+            }
+            FieldValue v = fv.values.get(i);
+            if (v instanceof SubfieldsValue) {
+                System.out.println(v.field().name() + ": ");
+                for (FieldValues sfv : ((SubfieldsValue) v).value()) {
+                    dumpFieldValues(sfv, indent + 1);
+                }
+                System.out.print("  ");
+            } else {
+                System.out.print(v);
+            }
+        }
+        System.out.println();
+    }
+
+    private int testPatchSettings(ByteBuffer buf, int vce) {
+        BitBuffer bb;
+        bb = section(0x4d, buf); //param list
+        //assertEquals(357,bb.limit(), "parameters2 len");
+        assertEquals(2,bb.get(2),"location"); //patch parameters
+
+        FieldValues patchSettings = PatchParams.FIELDS.read(bb);
+        //dumpFieldValues(patchSettings);
+        //System.out.println(patchSettings);
+        int vc = assertFieldEquals(patchSettings,vce, PatchParams.VariationCount);
+        assertFieldEquals(patchSettings,0x07, PatchParams.SectionCount);
+        sectionHeader(patchSettings, PatchParams.S1,1,16);
+        sectionHeader(patchSettings, PatchParams.S2,2,2);
+        sectionHeader(patchSettings, PatchParams.S3,3,2);
+        sectionHeader(patchSettings, PatchParams.S4,4,2);
+        sectionHeader(patchSettings, PatchParams.S5,5,3);
+        sectionHeader(patchSettings, PatchParams.S6,6,4);
+        sectionHeader(patchSettings, PatchParams.S7,7,2);
+        List<FieldValues> morphs = assertSubfields(patchSettings, vc, PatchParams.Morphs);
+        List<FieldValues> s2 = assertSubfields(patchSettings, vc, PatchParams.Section2);
+        List<FieldValues> s3 = assertSubfields(patchSettings, vc, PatchParams.Section3);
+        List<FieldValues> s4 = assertSubfields(patchSettings, vc, PatchParams.Section4);
+        List<FieldValues> s5 = assertSubfields(patchSettings, vc, PatchParams.Section5);
+        List<FieldValues> s6 = assertSubfields(patchSettings, vc, PatchParams.Section6);
+        List<FieldValues> s7 = assertSubfields(patchSettings, vc, PatchParams.Section7);
+        for (int i = 0; i < vc; i++) {
+            FieldValues ms = morphs.get(i);
+            assertFieldEquals(ms,i,MorphSettings.Variation);
+            List<FieldValues> mdials = assertSubfields(ms, 8, MorphSettings.Dials);
+            List<FieldValues> mmodes = assertSubfields(ms, 8, MorphSettings.Modes);
+            for (int j = 0; j < 8; j++) {
+                if (i == 1 && j == 2) {
+                    assertFieldEquals(mdials.get(j),25, Data7.Datum);
+                } else {
+                    assertFieldEquals(mdials.get(j),0x00, Data7.Datum);
+                }
+                assertFieldEquals(mmodes.get(j),0x01, Data7.Datum);
+            }
+            assertFieldEquals(s2.get(i),i,Settings2.Variation);
+            assertFieldEquals(s3.get(i),i,Settings3.Variation);
+            assertFieldEquals(s4.get(i),i,Settings4.Variation);
+            assertFieldEquals(s5.get(i),i,Settings5.Variation);
+            assertFieldEquals(s6.get(i),i,Settings6.Variation);
+            assertFieldEquals(s7.get(i),i,Settings7.Variation);
+
+            assertFieldEquals(s3.get(i),0x00,Settings3.Glide);
+            assertFieldEquals(s3.get(i),0x1c,Settings3.GlideTime);
+
+            assertFieldEquals(s5.get(i),0x00,Settings5.Vibrato);
+            assertFieldEquals(s5.get(i),0x32,Settings5.Cents);
+            assertFieldEquals(s5.get(i),0x40,Settings5.Rate);
+
+            assertFieldEquals(s6.get(i),0x00,Settings6.Arpeggiator);
+            assertFieldEquals(s6.get(i),0x03,Settings6.Time);
+            assertFieldEquals(s6.get(i),0x00,Settings6.Type);
+            assertFieldEquals(s6.get(i),0x00,Settings6.Octaves);
+
+            if (i == 1) {
+                assertFieldEquals(s2.get(i),0x00,Settings2.PatchVol);
+            } else {
+                assertFieldEquals(s2.get(i),0x64,Settings2.PatchVol);
+            }
+            assertFieldEquals(s2.get(i),0x01,Settings2.ActiveMuted);
+            if (i == 0 || i == 1) {
+                assertFieldEquals(s4.get(i),0x05,Settings4.Semi);
+                assertFieldEquals(s7.get(i),0x01,Settings7.OctShift);
+            } else {
+                assertFieldEquals(s4.get(i),0x01,Settings4.Semi);
+                assertFieldEquals(s7.get(i),0x02,Settings7.OctShift);
+            }
+
+            assertFieldEquals(s4.get(i),0x01,Settings4.Bend);
+
+            assertFieldEquals(s7.get(i),0x01,Settings7.Sustain);
+
+        }
+        return vc;
+    }
+
+    private void testCableLists(ByteBuffer buf,int... indexes) {
+        BitBuffer bb;
+        bb = section(0x52, buf);
+        assertEquals(0xf,bb.limit(), "cable list1 len");
+        FieldValues cl = CableList.FIELDS.read(bb);
+        //dumpFieldValues(cl);
+        assertFieldEquals(cl,1,CableList.Location);
+        assertFieldEquals(cl,0,CableList.Reserved);
+        assertFieldEquals(cl,3,CableList.CableCount);
+        List<FieldValues> cs = assertSubfields(cl, 3, CableList.Cables);
+
+
+        FieldValues cable = cs.get(indexes[0]);
+        assertFieldEquals(cable,0x00, Cable.Color);
+        assertFieldEquals(cable,0x03, Cable.ModuleFrom);
+        assertFieldEquals(cable,0x01, Cable.ConnectorFrom);
+        assertFieldEquals(cable,0x01, Cable.LinkType);
+        assertFieldEquals(cable,0x04, Cable.ModuleTo);
+        assertFieldEquals(cable,0x00, Cable.ConnectorTo);
+
+        cable = cs.get(indexes[1]);
+        assertFieldEquals(cable,0x00, Cable.Color);
+        assertFieldEquals(cable,0x01, Cable.ModuleFrom);
+        assertFieldEquals(cable,0x00, Cable.ConnectorFrom);
+        assertFieldEquals(cable,0x01, Cable.LinkType);
+        assertFieldEquals(cable,0x03, Cable.ModuleTo);
+        assertFieldEquals(cable,0x05, Cable.ConnectorTo);
+
+        cable = cs.get(indexes[2]);
+        assertFieldEquals(cable,0x00, Cable.Color);
+        assertFieldEquals(cable,0x02, Cable.ModuleFrom);
+        assertFieldEquals(cable,0x00, Cable.ConnectorFrom);
+        assertFieldEquals(cable,0x01, Cable.LinkType);
+        assertFieldEquals(cable,0x01, Cable.ModuleTo);
+        assertFieldEquals(cable,0x00, Cable.ConnectorTo);
+
+        bb = section(0x52, buf);
+        assertEquals(0xb,bb.limit(), "cable list0 len");
+        cl = CableList.FIELDS.read(bb);
+        //dumpFieldValues(cl);
+        assertFieldEquals(cl,0,CableList.Location);
+        assertFieldEquals(cl,0,CableList.Reserved);
+        assertFieldEquals(cl,2,CableList.CableCount);
+        cs = assertSubfields(cl, 2, CableList.Cables);
+
+        cable = cs.get(indexes[3]);
+        assertFieldEquals(cable,0x00, Cable.Color);
+        assertFieldEquals(cable,0x02, Cable.ModuleFrom);
+        assertFieldEquals(cable,0x00, Cable.ConnectorFrom);
+        assertFieldEquals(cable,0x01, Cable.LinkType);
+        assertFieldEquals(cable,0x03, Cable.ModuleTo);
+        assertFieldEquals(cable,0x00, Cable.ConnectorTo);
+
+        cable = cs.get(indexes[4]);
+        assertFieldEquals(cable,0x00, Cable.Color);
+        assertFieldEquals(cable,0x01, Cable.ModuleFrom);
+        assertFieldEquals(cable,0x00, Cable.ConnectorFrom);
+        assertFieldEquals(cable,0x01, Cable.LinkType);
+        assertFieldEquals(cable,0x02, Cable.ModuleTo);
+        assertFieldEquals(cable,0x00, Cable.ConnectorTo);
+
+    }
+
+    private void testModules(ByteBuffer buf, int... indexes) {
+        BitBuffer bb;
+        bb = section(0x4a, buf);
+        assertEquals(27,bb.limit(), "module list len");
+        FieldValues modl = ModuleList.FIELDS.read(bb);
+        assertFieldEquals(modl,1,ModuleList.Location);
+        List<FieldValues> mods = assertSubfields(modl, 4, ModuleList.Modules);
+
+        FieldValues module;
+        List<FieldValues> modes;
+
+        //Util.dumpBuffer(b2);
+        module = mods.removeFirst();
+        assertFieldEquals(module,0x5c, Module_.Id); //filter classic
+        assertFieldEquals(module,0x01, Module_.Index);
+        assertFieldEquals(module,0x00, Module_.Horiz);
+        assertFieldEquals(module,0x09, Module_.Vert);
+        assertFieldEquals(module,0x00, Module_.Color);
+        assertFieldEquals(module,0x00, Module_.Uprate);
+        assertFieldEquals(module,0x00, Module_.Leds);
+        assertFieldEquals(module,0x00, Module_.Reserved);
+        assertFieldEquals(module,0x00, Module_.ModeCount);
+        assertSubfields(module, 0, Module_.Modes);
+
+        module = mods.removeFirst();
+        assertFieldEquals(module,0x09, Module_.Id); //osc c
+        assertFieldEquals(module,0x02, Module_.Index);
+        assertFieldEquals(module,0x00, Module_.Horiz);
+        assertFieldEquals(module,0x06, Module_.Vert);
+        assertFieldEquals(module,0x00, Module_.Color);
+        assertFieldEquals(module,0x00, Module_.Uprate);
+        assertFieldEquals(module,0x00, Module_.Leds);
+        assertFieldEquals(module,0x00, Module_.Reserved);
+        assertFieldEquals(module,0x01, Module_.ModeCount);
+        modes = assertSubfields(module, 1, Module_.Modes);
+        assertFieldEquals(modes.getFirst(),0x02, ModuleModes.Data);
+
+        module = mods.removeFirst();
+        assertFieldEquals(module,0x17, Module_.Id);  // ModADSR
+        assertFieldEquals(module,0x03, Module_.Index);
+        assertFieldEquals(module,0x00, Module_.Horiz);
+        assertFieldEquals(module,0x0d, Module_.Vert);
+        assertFieldEquals(module,0x00, Module_.Color);
+        assertFieldEquals(module,0x01, Module_.Uprate);
+        assertFieldEquals(module,0x00, Module_.Leds);
+        assertFieldEquals(module,0x00, Module_.Reserved);
+        assertFieldEquals(module,0x00, Module_.ModeCount);
+        assertSubfields(module, 0, Module_.Modes);
+
+
+        module = mods.removeFirst();
+        assertFieldEquals(module,0x04, Module_.Id); // 2-out
+        assertFieldEquals(module,0x04, Module_.Index);
+        assertFieldEquals(module,0x00, Module_.Horiz);
+        assertFieldEquals(module,0x12, Module_.Vert);
+        assertFieldEquals(module,0x00, Module_.Color);
+        assertFieldEquals(module,0x00, Module_.Uprate);
+        assertFieldEquals(module,0x01, Module_.Leds);
+        assertFieldEquals(module,0x00, Module_.Reserved);
+        assertFieldEquals(module,0x00, Module_.ModeCount);
+        assertSubfields(module, 0, Module_.Modes);
+
+        bb = section(0x4a, buf);
+        assertEquals(20,bb.limit(), "module list0 len");
+        modl = ModuleList.FIELDS.read(bb);
+        assertFieldEquals(modl,0,ModuleList.Location);
+        mods = assertSubfields(modl, 3, ModuleList.Modules);
+
+
+        module = mods.get(indexes[0]);
+        assertFieldEquals(module,0x7f, Module_.Id); // FX Input
+        assertFieldEquals(module,0x01, Module_.Index);
+        assertFieldEquals(module,0x01, Module_.Horiz);
+        assertFieldEquals(module,0x02, Module_.Vert);
+        assertFieldEquals(module,0x00, Module_.Color);
+        assertFieldEquals(module,0x00, Module_.Uprate);
+        assertFieldEquals(module,0x01, Module_.Leds);
+        assertFieldEquals(module,0x00, Module_.Reserved);
+        assertFieldEquals(module,0x00, Module_.ModeCount);
+        assertSubfields(module, 0, Module_.Modes);
+
+
+        module = mods.get(indexes[1]);
+        //dumpFieldValues(module);
+        assertFieldEquals(module,0xc2, Module_.Id);//Mixer 2-1A
+        assertFieldEquals(module,0x02, Module_.Index);
+        assertFieldEquals(module,0x01, Module_.Horiz);
+        assertFieldEquals(module,0x04, Module_.Vert);
+        assertFieldEquals(module,0x00, Module_.Color);
+        assertFieldEquals(module,0x01, Module_.Uprate);
+        assertFieldEquals(module,0x00, Module_.Leds);
+        assertFieldEquals(module,0x00, Module_.Reserved);
+        assertFieldEquals(module,0x00, Module_.ModeCount);
+        assertSubfields(module, 0, Module_.Modes);
+
+
+        module = mods.get(indexes[2]);
+        assertFieldEquals(module,0x04, Module_.Id); //2-out
+        assertFieldEquals(module,0x03, Module_.Index);
+        assertFieldEquals(module,0x01, Module_.Horiz);
+        assertFieldEquals(module,0x09, Module_.Vert);
+        assertFieldEquals(module,0x00, Module_.Color);
+        assertFieldEquals(module,0x00, Module_.Uprate);
+        assertFieldEquals(module,0x01, Module_.Leds);
+        assertFieldEquals(module,0x00, Module_.Reserved);
+        assertFieldEquals(module,0x00, Module_.ModeCount);
+        assertSubfields(module, 0, Module_.Modes);
     }
 
     @Test
@@ -650,7 +696,7 @@ class ProtocolTest {
 
     @Test
     public void readPatch() throws Exception {
-        ByteBuffer buf = Util.readFile("data/simple synth 001.pch2");
+        ByteBuffer buf = Util.readFile("data/simplesynth001-20240802.pch2");
         ByteBuffer header = patchHeader();
         while (header.hasRemaining()) {
             assertEquals(header.get(),buf.get(),"header check");
@@ -667,8 +713,8 @@ class ProtocolTest {
                 PatchDescription.Reserved.value(Data8.asSubfield(0, 0, 0, 0, 0, 0, 0)), //!USB
                 PatchDescription.Reserved2.value(0x00), //!USB
                 PatchDescription.Voices.value(0x05),
-                PatchDescription.Height.value(0), //!USB
-                PatchDescription.Unk2.value(0x02), //!USB
+                PatchDescription.Height.value(374),
+                PatchDescription.Unk2.value(0x01),
                 PatchDescription.Red.value(0x01),
                 PatchDescription.Blue.value(0x01),
                 PatchDescription.Yellow.value(0x01),
@@ -677,19 +723,13 @@ class ProtocolTest {
                 PatchDescription.Purple.value(0x01),
                 PatchDescription.White.value(0x01),
                 PatchDescription.MonoPoly.value(0x00),
-                PatchDescription.Variation.value(0x00), //!USB
+                PatchDescription.Variation.value(0x01),
                 PatchDescription.Category.value(0x00)
         );
         FieldValues pd_ = PatchDescription.FIELDS.read(bb);
         assertEquals(pd,pd_,"PatchDescription");
 
-        bb = section(0x4a,buf);
-        FieldValues modl = ModuleList.FIELDS.read(bb);
-        assertFieldEquals(modl,1,ModuleList.Location);
-
-        bb = section(0x4a,buf);
-        modl = ModuleList.FIELDS.read(bb);
-        assertFieldEquals(modl,0,ModuleList.Location);
+        testModules(buf,0,2,1);
 
         bb = section(0x69,buf); //CurrentNote
         FieldValues cns = CurrentNote.FIELDS.read(bb);
@@ -706,17 +746,9 @@ class ProtocolTest {
             assertFieldEquals(n,0x00,NoteData.Release);
         }
 
+        testCableLists(buf,2,1,0,1,0); //LOL reversed in patch!!!
 
-        //52 should be next, CABLE_LIST
-        bb = section(0x52,buf);
-        FieldValues cl = CableList.FIELDS.read(bb);
-
-        bb = section(0x52,buf);
-        cl = CableList.FIELDS.read(bb);
-
-        bb = section(0x4d,buf); //param list
-        assertEquals(2,bb.get(2),"location"); //patch parameters
-        FieldValues patchSettings = PatchParams.FIELDS.read(bb);
+        int vc = testPatchSettings(buf,9);
 
         bb = section(0x4d,buf); //param list
         assertEquals(1,bb.get(2),"location"); //loc1 parameters
@@ -757,8 +789,11 @@ class ProtocolTest {
         mns = ModuleNames.FIELDS.read(bb);
 
 
-        bb = section(0x6f,buf); //Text Pad
-        assertEquals(0x00,bb.limit(),"TextPad"); //empty
+        bb = section(0x6f,buf);
+        assertEquals(17,bb.limit(),"TextPad"); //empty
+        for (char c : "Writing notes ...".toCharArray()) {
+            assertEquals(c,bb.get());
+        }
 
 
         int fcrc = Util.getShort(buf);
