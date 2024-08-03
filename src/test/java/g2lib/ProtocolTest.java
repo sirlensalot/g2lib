@@ -675,36 +675,36 @@ class ProtocolTest {
 
         bb = section(0x4d,buf); //param list
         assertEquals(2,bb.get(2),"location"); //patch parameters
-        FieldValues patchSettings = PatchParams.FIELDS.read(bb);
+        PatchParams.FIELDS.read(bb);
 
         bb = section(0x4d,buf); //param list
         assertEquals(1,bb.get(2),"location"); //loc1 parameters
-        FieldValues modParams = ModuleParams.FIELDS.read(bb);
+        ModuleParams.FIELDS.read(bb);
 
         bb = section(0x4d,buf); //param list
         assertEquals(0,bb.get(2),"location"); //loc0 parameters
-        modParams = ModuleParams.FIELDS.read(bb);
+        ModuleParams.FIELDS.read(bb);
 
         bb = section(0x65,buf); //morph parameters
-        FieldValues morphParams = MorphParameters.FIELDS.read(bb);
+        MorphParameters.FIELDS.read(bb);
 
         bb = section(0x62,buf); //knob assignments
-        FieldValues knobs = KnobAssignments.FIELDS.read(bb);
+        KnobAssignments.FIELDS.read(bb);
 
         bb = section(0x60,buf); //Control Assignments
-        FieldValues cass = ControlAssignments.FIELDS.read(bb);
+        ControlAssignments.FIELDS.read(bb);
 
         bb = section(0x5a,buf); //Module Names
         assertEquals(0x01,bb.get(2),"Location");
-        FieldValues mns = ModuleNames.FIELDS.read(bb);
+        ModuleNames.FIELDS.read(bb);
 
         bb = section(0x5a,buf); //Module Names
         assertEquals(0x00,bb.get(2),"Location");
-        mns = ModuleNames.FIELDS.read(bb);
+        ModuleNames.FIELDS.read(bb);
 
         bb = section(0x5b,buf); //Labels
         assertEquals(0x02,bb.get(2),"Location"); // settings/morph labels
-        FieldValues mls = MorphLabels.FIELDS.read(bb);
+        MorphLabels.FIELDS.read(bb);
 
         bb = section(0x5b,buf); //Labels
         assertEquals(0x01,bb.get(2),"Location"); // module labels
