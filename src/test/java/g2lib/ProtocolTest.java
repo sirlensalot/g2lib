@@ -24,16 +24,9 @@ class ProtocolTest {
         return actual;
     }
 
-    public static String assertFieldEquals(FieldValues values, String expected, FieldEnum field) {
+    public static void assertFieldEquals(FieldValues values, String expected, FieldEnum field) {
         String actual = assertString(values, field);
         assertEquals(expected,actual,field.toString());
-        return actual;
-    }
-
-
-    private void xassertEquals(int expected, int actual, Object... msgs) {
-        String msg = String.join(".",Arrays.stream(msgs).map(Object::toString).toList());
-        System.out.printf("%-16s: %#02x\n",msg,actual);
     }
 
 
@@ -71,13 +64,9 @@ class ProtocolTest {
         //System.out.println(vp);
         assertFieldEquals(vp, variation,VarParams.Variation);
         String message = "mod params var " + variation;
-        assertSubfieldValues(vp, message, VarParams.Params, Data7.Datum, expecteds);
-    }
-
-    private static void assertSubfieldValues(FieldValues vp, String message, FieldEnum subfield, FieldEnum valField, Integer... expecteds) {
         List<Integer> el = Arrays.asList(expecteds);
-        List<FieldValues> ps = assertSubfields(vp, el.size(), subfield);
-        List<Integer> al = ps.stream().map(fv -> assertValue(fv, valField)).toList();
+        List<FieldValues> ps = assertSubfields(vp, el.size(), VarParams.Params);
+        List<Integer> al = ps.stream().map(fv -> assertValue(fv, Data7.Datum)).toList();
         assertEquals(el,al, message);
     }
 
@@ -89,112 +78,28 @@ class ProtocolTest {
     }
 
 
-    @Test
-    void patchDesc() throws Exception {
 
-        ByteBuffer buf = Util.readFile("data/patchdesc1.msg");
-
-        assertEquals(0x01,buf.get()); // cmd
-        assertEquals(0x09,buf.get()); // slot 1
-        assertEquals(0x00,buf.get()); // patch version
+    private static void testMorphLabels(ByteBuffer buf) {
         BitBuffer bb;
-        bb = section(0x21,buf);
+        bb = section(0x5b, buf); //Labels
+        assertEquals(0x02,bb.get(2),"Location"); // settings/morph labels
+        FieldValues mls = MorphLabels.FIELDS.read(bb);
+        assertFieldEquals(mls,0x01,MorphLabels.LabelCount);
+        assertFieldEquals(mls,0x01,MorphLabels.Entry);
+        assertFieldEquals(mls,80,MorphLabels.Length);
+        List<FieldValues> ls = assertSubfields(mls, 1, MorphLabels.Labels);
+        FieldValues l = ls.removeFirst();
+        assertFieldEquals(l,1,MorphLabel.Index);
+        assertFieldEquals(l,8,MorphLabel.Length);
+        assertFieldEquals(l,8,MorphLabel.Entry);
+        assertFieldEquals(l,"Wheel",MorphLabel.Label);
+        //System.out.printf("%d %d %d\n",bb.getBitIndex(),bb.getBitLength(),bb.limit());
+        //Util.dumpBuffer(bb.toBuffer());
+    }
 
-        FieldValues pd = PatchDescription.FIELDS.values(
-                PatchDescription.Reserved.value(Data8.asSubfield(1, 0xfc, 0, 0, 1, 0, 0)),
-                PatchDescription.Reserved2.value(0x04),
-                PatchDescription.Voices.value(0x05),
-                PatchDescription.Height.value(374),
-                PatchDescription.Unk2.value(0x01),
-                PatchDescription.Red.value(0x01),
-                PatchDescription.Blue.value(0x01),
-                PatchDescription.Yellow.value(0x01),
-                PatchDescription.Orange.value(0x01),
-                PatchDescription.Green.value(0x01),
-                PatchDescription.Purple.value(0x01),
-                PatchDescription.White.value(0x01),
-                PatchDescription.MonoPoly.value(0x00),
-                PatchDescription.Variation.value(0x01),
-                PatchDescription.Category.value(0x00)
-        );
-        assertEquals(pd,PatchDescription.FIELDS.read(bb),"PatchDescription");
-
-        assertEquals(0x2d,buf.get(),"USB extra 1");
-        assertEquals(0x00,buf.get(), "USB extra 2");
-
-        testModules(buf,0,1,2);
-
-        testCableLists(buf,0,1,2,0,1);
-
-        int vc = testPatchSettings(buf,10);
-
-        testModParams1(buf, vc);
-        testModParams0(buf, vc);
-
-        bb = section(0x65,buf); //morph parameters
-        FieldValues morphParams = MorphParameters.FIELDS.read(bb);
-
-        assertFieldEquals(morphParams,vc,MorphParameters.VariationCount);
-        assertFieldEquals(morphParams,8 ,MorphParameters.MorphCount);
-        assertFieldEquals(morphParams,0 ,MorphParameters.Reserved);
-        List<FieldValues> vms = assertSubfields(morphParams, vc, MorphParameters.VarMorphs);
-        for (int i = 0; i < vc; i++) {
-            FieldValues vm = vms.get(i);
-            assertFieldEquals(vm,i,VarMorph.Variation);
-            assertFieldEquals(vm,0,VarMorph.Reserved0);
-            assertFieldEquals(vm,0,VarMorph.Reserved1);
-            assertFieldEquals(vm,0,VarMorph.Reserved2);
-            assertFieldEquals(vm,0,VarMorph.Reserved3);
-            int mc = i == 1 ? 1 : 0;
-            assertFieldEquals(vm,mc,VarMorph.MorphCount);
-            List<FieldValues> vmps = assertSubfields(vm, mc, VarMorph.VarMorphParams);
-            if (i == 1) {
-                FieldValues vmp = vmps.getFirst();
-                assertFieldEquals(vmp,0x01,VarMorphParam.Location);
-                assertFieldEquals(vmp,0x02,VarMorphParam.ModuleIndex);
-                assertFieldEquals(vmp,0x01,VarMorphParam.ParamIndex );
-                assertFieldEquals(vmp,0x01,VarMorphParam.Morph      );
-                assertFieldEquals(vmp,0x7f,VarMorphParam.Range      );
-            }
-
-        }
-
-        bb = section(0x62,buf); //knob assignments
-        FieldValues knobs = KnobAssignments.FIELDS.read(bb);
-        int kc = assertFieldEquals(knobs,0x78,KnobAssignments.KnobCount);
-        List<FieldValues> kas = assertSubfields(knobs, kc, KnobAssignments.Knobs);
-        for (int i = 0; i < kc; i++) {
-            FieldValues ka = kas.get(i);
-            int a = i == 0 ? 1 : 0;
-            assertFieldEquals(ka,a,KnobAssignment.Assigned);
-            List<FieldValues> kps = assertSubfields(ka, a, KnobAssignment.Params);
-            if (i == 0) {
-                FieldValues kp = kps.getFirst();
-                assertFieldEquals(kp,1,KnobParams.Location);
-                assertFieldEquals(kp,1,KnobParams.Index);
-                assertFieldEquals(kp,0,KnobParams.IsLed);
-                assertFieldEquals(kp,0,KnobParams.Param);
-                //yikes, reads slot (2) if "performance" !!!
-            }
-        }
-
-        bb = section(0x60,buf); //Control Assignments
-        FieldValues cass = ControlAssignments.FIELDS.read(bb);
-        //System.out.println(cass);
-        assertFieldEquals(cass,0x02,ControlAssignments.NumControls);
-        List<FieldValues> cas = assertSubfields(cass, 2, ControlAssignments.Assignments);
-        FieldValues ca = cas.removeFirst();
-        assertFieldEquals(ca,0x07,ControlAssignment.MidiCC);
-        assertFieldEquals(ca,0x02,ControlAssignment.Location);
-        assertFieldEquals(ca,0x02,ControlAssignment.Index);
-        assertFieldEquals(ca,0x00,ControlAssignment.Param);
-        ca = cas.removeFirst();
-        assertFieldEquals(ca,0x11,ControlAssignment.MidiCC);
-        assertFieldEquals(ca,0x02,ControlAssignment.Location);
-        assertFieldEquals(ca,0x07,ControlAssignment.Index);
-        assertFieldEquals(ca,0x00,ControlAssignment.Param);
-
-        bb = section(0x5a,buf); //Module Names
+    private static void testModuleNames(ByteBuffer buf) {
+        BitBuffer bb;
+        bb = section(0x5a, buf); //Module Names
         assertEquals(0x01,bb.get(2),"Location");
 
         FieldValues mns = ModuleNames.FIELDS.read(bb);
@@ -219,7 +124,7 @@ class ProtocolTest {
         assertFieldEquals(n,"2-Out1",ModuleName.Name);
 
 
-        bb = section(0x5a,buf); //Module Names
+        bb = section(0x5a, buf); //Module Names
         assertEquals(0x00,bb.get(2),"Location");
         mns = ModuleNames.FIELDS.read(bb);
         assertFieldEquals(mns,0x00,ModuleNames.Reserved);
@@ -237,32 +142,78 @@ class ProtocolTest {
         n = ns.removeFirst();
         assertFieldEquals(n,0x03,ModuleName.ModuleIndex);
         assertFieldEquals(n,"2-Out1",ModuleName.Name);
+    }
 
+    private static void testKnobAssignments(ByteBuffer buf) {
+        BitBuffer bb;
+        bb = section(0x62, buf); //knob assignments
+        FieldValues knobs = KnobAssignments.FIELDS.read(bb);
+        int kc = assertFieldEquals(knobs,0x78,KnobAssignments.KnobCount);
+        List<FieldValues> kas = assertSubfields(knobs, kc, KnobAssignments.Knobs);
+        for (int i = 0; i < kc; i++) {
+            FieldValues ka = kas.get(i);
+            int a = i == 0 ? 1 : 0;
+            assertFieldEquals(ka,a,KnobAssignment.Assigned);
+            List<FieldValues> kps = assertSubfields(ka, a, KnobAssignment.Params);
+            if (i == 0) {
+                FieldValues kp = kps.getFirst();
+                assertFieldEquals(kp,1,KnobParams.Location);
+                assertFieldEquals(kp,1,KnobParams.Index);
+                assertFieldEquals(kp,0,KnobParams.IsLed);
+                assertFieldEquals(kp,0,KnobParams.Param);
+                //yikes, reads slot (2) if "performance" !!!
+            }
+        }
+    }
 
-        bb = section(0x5b,buf); //Labels
-        assertEquals(0x02,bb.get(2),"Location"); // settings/morph labels
-        FieldValues mls = MorphLabels.FIELDS.read(bb);
-        assertFieldEquals(mls,0x01,MorphLabels.LabelCount);
-        assertFieldEquals(mls,0x01,MorphLabels.Entry);
-        assertFieldEquals(mls,80,MorphLabels.Length);
-        List<FieldValues> ls = assertSubfields(mls, 1, MorphLabels.Labels);
-        FieldValues l = ls.removeFirst();
-        assertFieldEquals(l,1,MorphLabel.Index);
-        assertFieldEquals(l,8,MorphLabel.Length);
-        assertFieldEquals(l,8,MorphLabel.Entry);
-        assertFieldEquals(l,"Wheel",MorphLabel.Label);
+    private static void testControlAssignments(ByteBuffer buf) {
+        BitBuffer bb;
+        bb = section(0x60, buf); //Control Assignments
+        FieldValues cass = ControlAssignments.FIELDS.read(bb);
+        //System.out.println(cass);
+        assertFieldEquals(cass,0x02,ControlAssignments.NumControls);
+        List<FieldValues> cas = assertSubfields(cass, 2, ControlAssignments.Assignments);
+        FieldValues ca = cas.removeFirst();
+        assertFieldEquals(ca,0x07,ControlAssignment.MidiCC);
+        assertFieldEquals(ca,0x02,ControlAssignment.Location);
+        assertFieldEquals(ca,0x02,ControlAssignment.Index);
+        assertFieldEquals(ca,0x00,ControlAssignment.Param);
+        ca = cas.removeFirst();
+        assertFieldEquals(ca,0x11,ControlAssignment.MidiCC);
+        assertFieldEquals(ca,0x02,ControlAssignment.Location);
+        assertFieldEquals(ca,0x07,ControlAssignment.Index);
+        assertFieldEquals(ca,0x00,ControlAssignment.Param);
+    }
 
-        bb = section(0x5b,buf); //Labels
-        assertEquals(0x01,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch
+    private static void testMorphParams(ByteBuffer buf, int vc) {
+        BitBuffer bb;
+        bb = section(0x65, buf); //morph parameters
+        FieldValues morphParams = MorphParameters.FIELDS.read(bb);
 
-        bb = section(0x5b,buf); //Labels
-        assertEquals(0x00,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+        assertFieldEquals(morphParams, vc,MorphParameters.VariationCount);
+        assertFieldEquals(morphParams,8 ,MorphParameters.MorphCount);
+        assertFieldEquals(morphParams,0 ,MorphParameters.Reserved);
+        List<FieldValues> vms = assertSubfields(morphParams, vc, MorphParameters.VarMorphs);
+        for (int i = 0; i < vc; i++) {
+            FieldValues vm = vms.get(i);
+            assertFieldEquals(vm,i,VarMorph.Variation);
+            assertFieldEquals(vm,0,VarMorph.Reserved0);
+            assertFieldEquals(vm,0,VarMorph.Reserved1);
+            assertFieldEquals(vm,0,VarMorph.Reserved2);
+            assertFieldEquals(vm,0,VarMorph.Reserved3);
+            int mc = i == 1 ? 1 : 0;
+            assertFieldEquals(vm,mc,VarMorph.MorphCount);
+            List<FieldValues> vmps = assertSubfields(vm, mc, VarMorph.VarMorphParams);
+            if (i == 1) {
+                FieldValues vmp = vmps.getFirst();
+                assertFieldEquals(vmp,0x01,VarMorphParam.Location);
+                assertFieldEquals(vmp,0x02,VarMorphParam.ModuleIndex);
+                assertFieldEquals(vmp,0x01,VarMorphParam.ParamIndex );
+                assertFieldEquals(vmp,0x01,VarMorphParam.Morph      );
+                assertFieldEquals(vmp,0x7f,VarMorphParam.Range      );
+            }
 
-        assertEquals(0xed77,Util.getShort(buf),"CRC");
-        assertFalse(buf.hasRemaining(),"Buf done");
-
+        }
     }
 
     private static void testModParams0(ByteBuffer buf, int vc) {
@@ -623,6 +574,72 @@ class ProtocolTest {
         assertSubfields(module, 0, Module_.Modes);
     }
 
+
+    @Test
+    void patchDesc() throws Exception {
+
+        ByteBuffer buf = Util.readFile("data/patchdesc1.msg");
+
+        assertEquals(0x01,buf.get()); // cmd
+        assertEquals(0x09,buf.get()); // slot 1
+        assertEquals(0x00,buf.get()); // patch version
+        BitBuffer bb;
+        bb = section(0x21,buf);
+
+        FieldValues pd = PatchDescription.FIELDS.values(
+                PatchDescription.Reserved.value(Data8.asSubfield(1, 0xfc, 0, 0, 1, 0, 0)),
+                PatchDescription.Reserved2.value(0x04),
+                PatchDescription.Voices.value(0x05),
+                PatchDescription.Height.value(374),
+                PatchDescription.Unk2.value(0x01),
+                PatchDescription.Red.value(0x01),
+                PatchDescription.Blue.value(0x01),
+                PatchDescription.Yellow.value(0x01),
+                PatchDescription.Orange.value(0x01),
+                PatchDescription.Green.value(0x01),
+                PatchDescription.Purple.value(0x01),
+                PatchDescription.White.value(0x01),
+                PatchDescription.MonoPoly.value(0x00),
+                PatchDescription.Variation.value(0x01),
+                PatchDescription.Category.value(0x00)
+        );
+        assertEquals(pd,PatchDescription.FIELDS.read(bb),"PatchDescription");
+
+        assertEquals(0x2d,buf.get(),"USB extra 1");
+        assertEquals(0x00,buf.get(), "USB extra 2");
+
+        testModules(buf,0,1,2);
+
+        testCableLists(buf,0,1,2,0,1);
+
+        int vc = testPatchSettings(buf,10);
+
+        testModParams1(buf, vc);
+        testModParams0(buf, vc);
+
+        testMorphParams(buf, vc);
+
+        testKnobAssignments(buf);
+
+        testControlAssignments(buf);
+
+        testModuleNames(buf);
+
+        testMorphLabels(buf);
+
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x01,bb.get(2),"Location"); // module labels
+        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch
+
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x00,bb.get(2),"Location"); // module labels
+        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+
+        assertEquals(0xed77,Util.getShort(buf),"CRC");
+        assertFalse(buf.hasRemaining(),"Buf done");
+
+    }
+
     @Test
     void patchDesc0() throws Exception {
 
@@ -763,19 +780,13 @@ class ProtocolTest {
 
         testModParams0(buf,vc);
 
-        bb = section(0x65,buf); //morph parameters
-        FieldValues morphParams = MorphParameters.FIELDS.read(bb);
+        testMorphParams(buf,vc);
 
-        bb = section(0x62,buf); //knob assignments
-        FieldValues knobs = KnobAssignments.FIELDS.read(bb);
+        testKnobAssignments(buf);
 
-        bb = section(0x60,buf); //Control Assignments
-        FieldValues cass = ControlAssignments.FIELDS.read(bb);
+        testControlAssignments(buf);
 
-
-        bb = section(0x5b,buf); //Labels
-        assertEquals(0x02,bb.get(2),"Location"); // settings/morph labels
-        FieldValues mls = MorphLabels.FIELDS.read(bb);
+        testMorphLabels(buf);
 
         bb = section(0x5b,buf); //Labels
         assertEquals(0x01,bb.get(2),"Location"); // module labels
@@ -785,14 +796,7 @@ class ProtocolTest {
         assertEquals(0x00,bb.get(2),"Location"); // module labels
         assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
 
-        bb = section(0x5a,buf); //Module Names
-        assertEquals(0x01,bb.get(2),"Location");
-        FieldValues mns = ModuleNames.FIELDS.read(bb);
-
-        bb = section(0x5a,buf); //Module Names
-        assertEquals(0x00,bb.get(2),"Location");
-        mns = ModuleNames.FIELDS.read(bb);
-
+        testModuleNames(buf);
 
         bb = section(0x6f,buf);
         assertEquals(17,bb.limit(),"TextPad"); //empty
