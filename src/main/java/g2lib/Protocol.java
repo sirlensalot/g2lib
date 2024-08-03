@@ -395,7 +395,7 @@ public class Protocol {
         Length(8),
         Labels(MorphLabel.FIELDS,MorphLabels.LabelCount);
         MorphLabels(int size) { f = new SizedField(this,size); }
-        MorphLabels(Fields fs,MorphLabels ix) { f = new SubfieldsField(this,fs,ix); }
+        MorphLabels(Fields fs,MorphLabels ix) { f = new SubfieldsField(this,fs,8); }
         private final Field f;
         public Field field() { return f; }
         public static final Fields FIELDS = new Fields(MorphLabels.class,values());
@@ -408,7 +408,7 @@ public class Protocol {
         Entry(8),
         Label();
         MorphLabel(int size) { f = new SizedField(this,size); }
-        MorphLabel() { f = new StringField(this); }
+        MorphLabel() { f = new StringField(this,6); }
         private final Field f;
         public Field field() { return f; }
         public static final Fields FIELDS = new Fields(MorphLabel.class,values());
@@ -444,6 +444,48 @@ public class Protocol {
         private final Field f;
         public Field field() { return f; }
         public static final Fields FIELDS = new Fields(NoteData.class,values());
+    }
+
+    public enum ModuleLabels implements FieldEnum {
+        Location(2),
+        ModuleCount(8),
+        ModLabels(ModuleLabel.FIELDS,ModuleLabels.ModuleCount);
+        ModuleLabels(int size) { f = new SizedField(this,size); }
+        ModuleLabels(Fields fs,FieldEnum e) { f = new SubfieldsField(this,fs,e); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(ModuleLabels.class,values());
+    }
+
+    public enum ModuleLabel implements FieldEnum {
+        ModuleIndex(8),
+        ModLabelLen(8),
+        Labels(ParamLabel.FIELDS,ModuleLabel.ModLabelLen);
+        ModuleLabel(int size) { f = new SizedField(this,size); }
+        ModuleLabel(Fields fs,FieldEnum e) {
+            final SubfieldsField.FieldCount fc = new SubfieldsField.FieldCount(e);
+            f = new SubfieldsField(this, fs, new SubfieldsField.SubfieldCount() {
+                @Override
+                public int getCount(List<FieldValues> values) {
+                    return fc.getCount(values)/7;
+                }
+            });
+        }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(ModuleLabel.class,values());
+    }
+
+    public enum ParamLabel implements FieldEnum {
+        IsString(8),
+        ParamLen(8),
+        ParamIndex(8),
+        Label();
+        ParamLabel(int size) { f = new SizedField(this,size); }
+        ParamLabel() { f = new StringField(this,6); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(ParamLabel.class,values());
     }
 
 }

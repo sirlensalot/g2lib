@@ -2,6 +2,7 @@ package g2lib;
 
 import org.usb4java.BufferUtils;
 
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 
 public class BitBuffer {
@@ -119,6 +120,21 @@ public class BitBuffer {
     public ByteBuffer slice() {
         int pos = bindex/8;
         return buffer.slice(pos,buffer.limit()-pos);
+    }
+
+    public ByteBuffer shiftedSlice() {
+        ByteBuffer buf = slice();
+        int rem = bindex % 8;
+        if (rem == 0) { return buf; }
+        return shiftedBuffer(buf, rem);
+    }
+
+    public static ByteBuffer shiftedBuffer(ByteBuffer buf, int rem) {
+        buf.rewind();
+        byte[] b = new byte[buf.limit()];
+        buf.get(b);
+        BigInteger i = new BigInteger(b).shiftLeft(rem);
+        return ByteBuffer.wrap(i.toByteArray());
     }
 
     public static BitBuffer sliceAhead(ByteBuffer buffer, int length) {

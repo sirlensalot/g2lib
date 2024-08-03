@@ -82,21 +82,22 @@ class ProtocolTest {
     private void testMorphLabels(ByteBuffer buf) {
         BitBuffer bb;
         bb = section(0x5b, buf); //Labels
-        Util.dumpBuffer(bb.toBuffer());
         assertEquals(0x02,bb.get(2),"Location"); // settings/morph labels
         FieldValues mls = MorphLabels.FIELDS.read(bb);
         assertFieldEquals(mls,0x01,MorphLabels.LabelCount);
         assertFieldEquals(mls,0x01,MorphLabels.Entry);
         assertFieldEquals(mls,80,MorphLabels.Length);
-        List<FieldValues> ls = assertSubfields(mls, 1, MorphLabels.Labels);
-        FieldValues l = ls.removeFirst();
-        assertFieldEquals(l,1,MorphLabel.Index);
-        assertFieldEquals(l,8,MorphLabel.Length);
-        assertFieldEquals(l,8,MorphLabel.Entry);
-        assertFieldEquals(l,"Wheel",MorphLabel.Label);
+        List<FieldValues> ls = assertSubfields(mls, 8, MorphLabels.Labels);
+        String[] labels = {"Wheel","Vel","Keyb1","Aft.Tch","Sust.Pd","Ctrl.Pd","P.Stick", "G.Wh 2"};
+        for (int i = 0; i < 8; i++) {
+            FieldValues l = ls.removeFirst();
+            assertFieldEquals(l,1,MorphLabel.Index);
+            assertFieldEquals(l,8,MorphLabel.Length);
+            assertFieldEquals(l,8+i,MorphLabel.Entry);
+            assertFieldEquals(l,labels[i],MorphLabel.Label);
+        }
 
-        Util.dumpBuffer(bb.slice());
-        //testEndPadding(bb,574); //WOAH TODO
+        testEndPadding(bb,6);
     }
 
     private void testModuleNames(ByteBuffer buf) {
@@ -145,7 +146,7 @@ class ProtocolTest {
         assertFieldEquals(n,0x03,ModuleName.ModuleIndex);
         assertFieldEquals(n,"2-Out1",ModuleName.Name);
 
-        testEndPadding(bb,0);
+        testEndPadding(bb,8);
     }
 
     private void testKnobAssignments(ByteBuffer buf) {
@@ -743,14 +744,40 @@ class ProtocolTest {
 
         bb = section(0x5b,buf); //Labels
         assertEquals(0x01,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules");
-        testEndPadding(bb,12);
+        assertEquals(0x00,bb.get(8),"NumModules");
+        testEndPadding(bb,6);
 
         bb = section(0x5b,buf); //Labels
-        assertEquals(0x00,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
-        Util.dumpBuffer(bb.slice());
-        //testEndPadding(bb,188); //WOAH TODO
+        FieldValues mls = ModuleLabels.FIELDS.read(bb);
+        dumpFieldValues(mls); //TODO
+//        assertEquals(0x00,bb.get(2),"Location"); // module labels
+//        assertEquals(0x01,bb.get(8),"NumModules");
+//
+//        assertEquals(0x02,bb.get(8),"ModIndex");
+//        assertEquals(0x14,bb.get(8),"ModLen");
+//
+//        assertEquals(0x01,bb.get(8),"IsString");
+//        assertEquals(0x08,bb.get(8),"ParamLen");
+//        assertEquals(0x01,bb.get(8),"ParamIndex");
+//        StringBuilder sb = new StringBuilder();
+//        for (int i = 0; i < 7; i++) {
+//            char c = (char) bb.get(8);
+//            if (c > 0) { sb.append(c); }
+//        }
+//        assertEquals("Ch 1",sb.toString());
+//
+//        assertEquals(0x01,bb.get(8),"IsString");
+//        assertEquals(0x08,bb.get(8),"ParamLen");
+//        assertEquals(0x03,bb.get(8),"ParamIndex");
+//        sb = new StringBuilder();
+//        for (int i = 0; i < 7; i++) {
+//            char c = (char) bb.get(8);
+//            if (c > 0) { sb.append(c); }
+//        }
+//        assertEquals("Ch Two",sb.toString());
+
+        testEndPadding(bb,6);
+
 
         assertEquals(0xed77,Util.getShort(buf),"CRC");
         assertFalse(buf.hasRemaining(),"Buf done");
@@ -829,13 +856,13 @@ class ProtocolTest {
 
         bb = section(0x5b,buf); //Labels
         assertEquals(0x01,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules");
-        testEndPadding(bb,12);
+        assertEquals(0x00,bb.get(8),"NumModules");
+        testEndPadding(bb,6);
 
         bb = section(0x5b,buf); //Labels
-        assertEquals(0x00,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
-        // testEndPadding(bb,188); // TODO
+        FieldValues mls = ModuleLabels.FIELDS.read(bb);
+        dumpFieldValues(mls); //TODO
+        testEndPadding(bb,6);
 
         testModuleNames(buf);
 
