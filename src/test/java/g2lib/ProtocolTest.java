@@ -319,7 +319,7 @@ class ProtocolTest {
                 System.out.print("  ");
             }
         };
-        ind.run();;
+        ind.run();
         for (int i = 0; i < fv.values.size(); i++) {
             if (i > 0) {
                 System.out.print(", ");
@@ -742,46 +742,46 @@ class ProtocolTest {
 
         testMorphLabels(buf);
 
-        bb = section(0x5b,buf); //Labels
-        assertEquals(0x01,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(8),"NumModules");
-        testEndPadding(bb,6);
 
-        bb = section(0x5b,buf); //Labels
-        FieldValues mls = ModuleLabels.FIELDS.read(bb);
-        dumpFieldValues(mls); //TODO
-//        assertEquals(0x00,bb.get(2),"Location"); // module labels
-//        assertEquals(0x01,bb.get(8),"NumModules");
-//
-//        assertEquals(0x02,bb.get(8),"ModIndex");
-//        assertEquals(0x14,bb.get(8),"ModLen");
-//
-//        assertEquals(0x01,bb.get(8),"IsString");
-//        assertEquals(0x08,bb.get(8),"ParamLen");
-//        assertEquals(0x01,bb.get(8),"ParamIndex");
-//        StringBuilder sb = new StringBuilder();
-//        for (int i = 0; i < 7; i++) {
-//            char c = (char) bb.get(8);
-//            if (c > 0) { sb.append(c); }
-//        }
-//        assertEquals("Ch 1",sb.toString());
-//
-//        assertEquals(0x01,bb.get(8),"IsString");
-//        assertEquals(0x08,bb.get(8),"ParamLen");
-//        assertEquals(0x03,bb.get(8),"ParamIndex");
-//        sb = new StringBuilder();
-//        for (int i = 0; i < 7; i++) {
-//            char c = (char) bb.get(8);
-//            if (c > 0) { sb.append(c); }
-//        }
-//        assertEquals("Ch Two",sb.toString());
 
-        testEndPadding(bb,6);
+        testModuleLabels(buf);
 
 
         assertEquals(0xed77,Util.getShort(buf),"CRC");
         assertFalse(buf.hasRemaining(),"Buf done");
 
+    }
+
+    private void testModuleLabels(ByteBuffer buf) {
+        BitBuffer bb = section(0x5b,buf); //Labels
+        FieldValues mlss = ModuleLabels.FIELDS.read(bb);
+        assertFieldEquals(mlss,0x01,ModuleLabels.Location); // module labels
+        assertFieldEquals(mlss,0x00,ModuleLabels.ModuleCount);
+        testEndPadding(bb,6);
+
+        bb = section(0x5b, buf); //Labels
+        mlss = ModuleLabels.FIELDS.read(bb);
+
+        assertFieldEquals(mlss,0x00,ModuleLabels.Location);
+        assertFieldEquals(mlss,0x01,ModuleLabels.ModuleCount);
+        FieldValues mls = assertSubfields(mlss,1,ModuleLabels.ModLabels).removeFirst();
+        assertFieldEquals(mls,0x02,ModuleLabel.ModuleIndex);
+        assertFieldEquals(mls,0x14,ModuleLabel.ModLabelLen);
+        List<FieldValues> ls = assertSubfields(mls, 2, ModuleLabel.Labels);
+
+        FieldValues l = ls.removeFirst();
+        assertFieldEquals(l,0x01,ParamLabel.IsString);
+        assertFieldEquals(l,0x08,ParamLabel.ParamLen);
+        assertFieldEquals(l,0x01,ParamLabel.ParamIndex);
+        assertFieldEquals(l,"Ch 1",ParamLabel.Label);
+
+        l = ls.removeFirst();
+        assertFieldEquals(l,0x01,ParamLabel.IsString);
+        assertFieldEquals(l,0x08,ParamLabel.ParamLen);
+        assertFieldEquals(l,0x03,ParamLabel.ParamIndex);
+        assertFieldEquals(l,"Ch Two",ParamLabel.Label);
+
+        testEndPadding(bb,6);
     }
 
 
@@ -854,15 +854,9 @@ class ProtocolTest {
 
         testMorphLabels(buf);
 
-        bb = section(0x5b,buf); //Labels
-        assertEquals(0x01,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(8),"NumModules");
-        testEndPadding(bb,6);
 
-        bb = section(0x5b,buf); //Labels
-        FieldValues mls = ModuleLabels.FIELDS.read(bb);
-        dumpFieldValues(mls); //TODO
-        testEndPadding(bb,6);
+
+        testModuleLabels(buf);
 
         testModuleNames(buf);
 
