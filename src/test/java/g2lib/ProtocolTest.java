@@ -576,71 +576,6 @@ class ProtocolTest {
 
 
     @Test
-    void patchDesc() throws Exception {
-
-        ByteBuffer buf = Util.readFile("data/patchdesc1.msg");
-
-        assertEquals(0x01,buf.get()); // cmd
-        assertEquals(0x09,buf.get()); // slot 1
-        assertEquals(0x00,buf.get()); // patch version
-        BitBuffer bb;
-        bb = section(0x21,buf);
-
-        FieldValues pd = PatchDescription.FIELDS.values(
-                PatchDescription.Reserved.value(Data8.asSubfield(1, 0xfc, 0, 0, 1, 0, 0)),
-                PatchDescription.Reserved2.value(0x04),
-                PatchDescription.Voices.value(0x05),
-                PatchDescription.Height.value(374),
-                PatchDescription.Unk2.value(0x01),
-                PatchDescription.Red.value(0x01),
-                PatchDescription.Blue.value(0x01),
-                PatchDescription.Yellow.value(0x01),
-                PatchDescription.Orange.value(0x01),
-                PatchDescription.Green.value(0x01),
-                PatchDescription.Purple.value(0x01),
-                PatchDescription.White.value(0x01),
-                PatchDescription.MonoPoly.value(0x00),
-                PatchDescription.Variation.value(0x01),
-                PatchDescription.Category.value(0x00)
-        );
-        assertEquals(pd,PatchDescription.FIELDS.read(bb),"PatchDescription");
-
-        assertEquals(0x2d,buf.get(),"USB extra 1");
-        assertEquals(0x00,buf.get(), "USB extra 2");
-
-        testModules(buf,0,1,2);
-
-        testCableLists(buf,0,1,2,0,1);
-
-        int vc = testPatchSettings(buf,10);
-
-        testModParams1(buf, vc);
-        testModParams0(buf, vc);
-
-        testMorphParams(buf, vc);
-
-        testKnobAssignments(buf);
-
-        testControlAssignments(buf);
-
-        testModuleNames(buf);
-
-        testMorphLabels(buf);
-
-        bb = section(0x5b,buf); //Labels
-        assertEquals(0x01,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch
-
-        bb = section(0x5b,buf); //Labels
-        assertEquals(0x00,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
-
-        assertEquals(0xed77,Util.getShort(buf),"CRC");
-        assertFalse(buf.hasRemaining(),"Buf done");
-
-    }
-
-    @Test
     void patchDesc0() throws Exception {
 
         ByteBuffer buf = Util.readFile("data/patchdesc0.msg");
@@ -715,6 +650,72 @@ class ProtocolTest {
         assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
 
         assertEquals(0x17da,Util.getShort(buf),"CRC");
+        assertFalse(buf.hasRemaining(),"Buf done");
+
+    }
+
+
+    @Test
+    void patchDesc() throws Exception {
+
+        ByteBuffer buf = Util.readFile("data/patchdesc1.msg");
+
+        assertEquals(0x01,buf.get()); // cmd
+        assertEquals(0x09,buf.get()); // slot 1
+        assertEquals(0x00,buf.get()); // patch version
+        BitBuffer bb;
+        bb = section(0x21,buf);
+
+        FieldValues pd = PatchDescription.FIELDS.values(
+                PatchDescription.Reserved.value(Data8.asSubfield(1, 0xfc, 0, 0, 1, 0, 0)),
+                PatchDescription.Reserved2.value(0x04),
+                PatchDescription.Voices.value(0x05),
+                PatchDescription.Height.value(374),
+                PatchDescription.Unk2.value(0x01),
+                PatchDescription.Red.value(0x01),
+                PatchDescription.Blue.value(0x01),
+                PatchDescription.Yellow.value(0x01),
+                PatchDescription.Orange.value(0x01),
+                PatchDescription.Green.value(0x01),
+                PatchDescription.Purple.value(0x01),
+                PatchDescription.White.value(0x01),
+                PatchDescription.MonoPoly.value(0x00),
+                PatchDescription.Variation.value(0x01),
+                PatchDescription.Category.value(0x00)
+        );
+        assertEquals(pd,PatchDescription.FIELDS.read(bb),"PatchDescription");
+
+        assertEquals(0x2d,buf.get(),"USB extra 1");
+        assertEquals(0x00,buf.get(), "USB extra 2");
+
+        testModules(buf,0,1,2);
+
+        testCableLists(buf,0,1,2,0,1);
+
+        int vc = testPatchSettings(buf,10);
+
+        testModParams1(buf, vc);
+        testModParams0(buf, vc);
+
+        testMorphParams(buf, vc);
+
+        testKnobAssignments(buf);
+
+        testControlAssignments(buf);
+
+        testModuleNames(buf);
+
+        testMorphLabels(buf);
+
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x01,bb.get(2),"Location"); // module labels
+        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch
+
+        bb = section(0x5b,buf); //Labels
+        assertEquals(0x00,bb.get(2),"Location"); // module labels
+        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+
+        assertEquals(0xed77,Util.getShort(buf),"CRC");
         assertFalse(buf.hasRemaining(),"Buf done");
 
     }
