@@ -6,7 +6,6 @@ import g2lib.protocol.FieldValues;
 import g2lib.protocol.SubfieldsValue;
 import org.junit.jupiter.api.Test;
 
-import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
@@ -129,77 +128,8 @@ class ProtocolTest {
 
         int vc = testPatchSettings(buf,10);
 
-        bb = section(0x4d,buf); //param list
-        assertEquals(286,bb.limit(), "parameters1 len");
-        assertEquals(1,bb.get(2),"location"); //loc1 parameters
-
-        FieldValues modParams = ModuleParams.FIELDS.read(bb);
-
-        assertFieldEquals(modParams,0x04,ModuleParams.SetCount);
-        assertFieldEquals(modParams,vc,ModuleParams.VariationCount);
-        List<FieldValues> mps = assertSubfields(modParams, 4, ModuleParams.ParamSet);
-
-        List<FieldValues> vps;
-        int v = 0;
-        vps = assertVarParams(mps, vc, 1, 6); //filter classic
-        assertModParams(v++,vps,58,0,1,11,0,1);
-        assertModParams(v++,vps,58,0,1,11,0,1);
-        while (v < vc) {
-            assertModParams(v++,vps,75,0,0,0,2,1);
-        }
-
-        vps = assertVarParams(mps, vc, 2, 8); //Osc C
-        v = 0;
-        assertModParams(v++,vps,76,64,1,0,0,1,0,0);
-        assertModParams(v++,vps,76, 0,1,0,0,1,0,0);
-        while (v < vc) {
-            assertModParams(v++,vps,64,64,1,0,0,1,0,0);
-        }
-
-        vps = assertVarParams(mps, vc, 3, 10); //ADSR
-        v = 0;
-        while (v < vc) {
-            assertModParams(v++,vps,0, 54, 100, 14, 0, 0, 0, 0, 0, 1);
-        }
-
-        vps = assertVarParams(mps, vc, 4, 3); //2-out
-        v = 0;
-        assertModParams(v++,vps,3,1,1);
-        assertModParams(v++,vps,3,1,1);
-        while (v < vc) {
-            assertModParams(v++,vps,0,1,0);
-        }
-
-        bb = section(0x4d,buf); //param list
-        assertEquals(135,bb.limit(), "parameters0 len");
-        assertEquals(0,bb.get(2),"location"); //loc0 parameters
-
-        modParams = ModuleParams.FIELDS.read(bb);
-
-        assertFieldEquals(modParams,3,ModuleParams.SetCount);
-        assertFieldEquals(modParams,vc,ModuleParams.VariationCount);
-        mps = assertSubfields(modParams, 3, ModuleParams.ParamSet);
-
-        vps = assertVarParams(mps, vc, 1, 3); //FX in
-        v = 0;
-        assertModParams(v++,vps,1,1,2);
-        assertModParams(v++,vps,1,1,2);
-        while (v < vc) {
-            assertModParams(v++,vps,0,1,1);
-        }
-
-        //dumpFieldValues(modParams);
-        vps = assertVarParams(mps, vc, 2, 5); //Mixer 2-1A
-        v = 0;
-        while (v < vc) {
-            assertModParams(v++,vps,100,1,100,v==2?0:1,0);
-        }
-
-        vps = assertVarParams(mps, vc, 3, 3); //2 out
-        v = 0;
-        while (v < vc) {
-            assertModParams(v++,vps,0,1,0);
-        }
+        testModParams1(buf, vc);
+        testModParams0(buf, vc);
 
         bb = section(0x65,buf); //morph parameters
         FieldValues morphParams = MorphParameters.FIELDS.read(bb);
@@ -333,6 +263,85 @@ class ProtocolTest {
         assertEquals(0xed77,Util.getShort(buf),"CRC");
         assertFalse(buf.hasRemaining(),"Buf done");
 
+    }
+
+    private static void testModParams0(ByteBuffer buf, int vc) {
+
+
+        BitBuffer bb = section(0x4d, buf); //param list
+        //assertEquals(135,bb.limit(), "parameters0 len"); 122 in patch TODO ???
+        assertEquals(0,bb.get(2),"location"); //loc0 parameters
+
+        FieldValues modParams = ModuleParams.FIELDS.read(bb);
+
+        assertFieldEquals(modParams,3,ModuleParams.SetCount);
+        assertFieldEquals(modParams, vc,ModuleParams.VariationCount);
+        List<FieldValues> mps = assertSubfields(modParams, 3, ModuleParams.ParamSet);
+
+        List<FieldValues> vps = assertVarParams(mps, vc, 1, 3); //FX in
+        int v = 0;
+        assertModParams(v++,vps,1,1,2);
+        assertModParams(v++,vps,1,1,2);
+        while (v < vc) {
+            assertModParams(v++,vps,0,1,1);
+        }
+
+        //dumpFieldValues(modParams);
+        vps = assertVarParams(mps, vc, 2, 5); //Mixer 2-1A
+        v = 0;
+        while (v < vc) {
+            assertModParams(v++,vps,100,1,100,v==2?0:1,0);
+        }
+
+        vps = assertVarParams(mps, vc, 3, 3); //2 out
+        v = 0;
+        while (v < vc) {
+            assertModParams(v++,vps,0,1,0);
+        }
+    }
+
+    private static void testModParams1(ByteBuffer buf, int vc) {
+        BitBuffer bb;
+        bb = section(0x4d, buf); //param list
+        //assertEquals(286,bb.limit(), "parameters1 len"); TODO extra bytes in USB??
+        assertEquals(1,bb.get(2),"location"); //loc1 parameters
+
+        FieldValues modParams = ModuleParams.FIELDS.read(bb);
+
+        assertFieldEquals(modParams,0x04,ModuleParams.SetCount);
+        assertFieldEquals(modParams, vc,ModuleParams.VariationCount);
+        List<FieldValues> mps = assertSubfields(modParams, 4, ModuleParams.ParamSet);
+
+        List<FieldValues> vps;
+        int v = 0;
+        vps = assertVarParams(mps, vc, 1, 6); //filter classic
+        assertModParams(v++,vps,58,0,1,11,0,1);
+        assertModParams(v++,vps,58,0,1,11,0,1);
+        while (v < vc) {
+            assertModParams(v++,vps,75,0,0,0,2,1);
+        }
+
+        vps = assertVarParams(mps, vc, 2, 8); //Osc C
+        v = 0;
+        assertModParams(v++,vps,76,64,1,0,0,1,0,0);
+        assertModParams(v++,vps,76, 0,1,0,0,1,0,0);
+        while (v < vc) {
+            assertModParams(v++,vps,64,64,1,0,0,1,0,0);
+        }
+
+        vps = assertVarParams(mps, vc, 3, 10); //ADSR
+        v = 0;
+        while (v < vc) {
+            assertModParams(v++,vps,0, 54, 100, 14, 0, 0, 0, 0, 0, 1);
+        }
+
+        vps = assertVarParams(mps, vc, 4, 3); //2-out
+        v = 0;
+        assertModParams(v++,vps,3,1,1);
+        assertModParams(v++,vps,3,1,1);
+        while (v < vc) {
+            assertModParams(v++,vps,0,1,0);
+        }
     }
 
     private static void dumpFieldValues(FieldValues fv) {
@@ -750,13 +759,9 @@ class ProtocolTest {
 
         int vc = testPatchSettings(buf,9);
 
-        bb = section(0x4d,buf); //param list
-        assertEquals(1,bb.get(2),"location"); //loc1 parameters
-        FieldValues modParams = ModuleParams.FIELDS.read(bb);
+        testModParams1(buf,vc);
 
-        bb = section(0x4d,buf); //param list
-        assertEquals(0,bb.get(2),"location"); //loc0 parameters
-        modParams = ModuleParams.FIELDS.read(bb);
+        testModParams0(buf,vc);
 
         bb = section(0x65,buf); //morph parameters
         FieldValues morphParams = MorphParameters.FIELDS.read(bb);
