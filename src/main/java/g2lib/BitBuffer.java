@@ -116,6 +116,11 @@ public class BitBuffer {
         return buffer.duplicate().rewind();
     }
 
+    public ByteBuffer slice() {
+        int pos = bindex/8;
+        return buffer.slice(pos,buffer.limit()-pos);
+    }
+
     public static BitBuffer sliceAhead(ByteBuffer buffer, int length) {
         BitBuffer bb = new BitBuffer(buffer.slice().limit(length));
         buffer.position(buffer.position()+length);
