@@ -24,6 +24,7 @@ public class BitBuffer {
 
     public int getBitLength() { return blength; }
     public int getBitIndex() { return bindex; }
+    public int getBitsRemaining() { return blength - bindex; }
 
     public int get() {
         return get(8);

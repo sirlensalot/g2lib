@@ -79,7 +79,7 @@ class ProtocolTest {
 
 
 
-    private static void testMorphLabels(ByteBuffer buf) {
+    private void testMorphLabels(ByteBuffer buf) {
         BitBuffer bb;
         bb = section(0x5b, buf); //Labels
         assertEquals(0x02,bb.get(2),"Location"); // settings/morph labels
@@ -93,11 +93,10 @@ class ProtocolTest {
         assertFieldEquals(l,8,MorphLabel.Length);
         assertFieldEquals(l,8,MorphLabel.Entry);
         assertFieldEquals(l,"Wheel",MorphLabel.Label);
-        //System.out.printf("%d %d %d\n",bb.getBitIndex(),bb.getBitLength(),bb.limit());
-        //Util.dumpBuffer(bb.toBuffer());
+        //testEndPadding(bb,574); //WOAH TODO
     }
 
-    private static void testModuleNames(ByteBuffer buf) {
+    private void testModuleNames(ByteBuffer buf) {
         BitBuffer bb;
         bb = section(0x5a, buf); //Module Names
         assertEquals(0x01,bb.get(2),"Location");
@@ -142,9 +141,11 @@ class ProtocolTest {
         n = ns.removeFirst();
         assertFieldEquals(n,0x03,ModuleName.ModuleIndex);
         assertFieldEquals(n,"2-Out1",ModuleName.Name);
+
+        testEndPadding(bb,0);
     }
 
-    private static void testKnobAssignments(ByteBuffer buf) {
+    private void testKnobAssignments(ByteBuffer buf) {
         BitBuffer bb;
         bb = section(0x62, buf); //knob assignments
         FieldValues knobs = KnobAssignments.FIELDS.read(bb);
@@ -164,9 +165,11 @@ class ProtocolTest {
                 //yikes, reads slot (2) if "performance" !!!
             }
         }
+
+        testEndPadding(bb,3);
     }
 
-    private static void testControlAssignments(ByteBuffer buf) {
+    private void testControlAssignments(ByteBuffer buf) {
         BitBuffer bb;
         bb = section(0x60, buf); //Control Assignments
         FieldValues cass = ControlAssignments.FIELDS.read(bb);
@@ -183,9 +186,12 @@ class ProtocolTest {
         assertFieldEquals(ca,0x02,ControlAssignment.Location);
         assertFieldEquals(ca,0x07,ControlAssignment.Index);
         assertFieldEquals(ca,0x00,ControlAssignment.Param);
+
+
+        testEndPadding(bb,1);
     }
 
-    private static void testMorphParams(ByteBuffer buf, int vc) {
+    private void testMorphParams(ByteBuffer buf, int vc) {
         BitBuffer bb;
         bb = section(0x65, buf); //morph parameters
         FieldValues morphParams = MorphParameters.FIELDS.read(bb);
@@ -214,13 +220,13 @@ class ProtocolTest {
             }
 
         }
+        testEndPadding(bb,3);
     }
 
-    private static void testModParams0(ByteBuffer buf, int vc) {
+    private void testModParams0(ByteBuffer buf, int vc, int remaining) {
 
 
         BitBuffer bb = section(0x4d, buf); //param list
-        //assertEquals(135,bb.limit(), "parameters0 len"); 122 in patch TODO ???
         assertEquals(0,bb.get(2),"location"); //loc0 parameters
 
         FieldValues modParams = ModuleParams.FIELDS.read(bb);
@@ -249,12 +255,13 @@ class ProtocolTest {
         while (v < vc) {
             assertModParams(v++,vps,0,1,0);
         }
+
+        testEndPadding(bb, remaining);
     }
 
-    private static void testModParams1(ByteBuffer buf, int vc) {
+    private void testModParams1(ByteBuffer buf, int vc, int remaining) {
         BitBuffer bb;
         bb = section(0x4d, buf); //param list
-        //assertEquals(286,bb.limit(), "parameters1 len"); TODO extra bytes in USB??
         assertEquals(1,bb.get(2),"location"); //loc1 parameters
 
         FieldValues modParams = ModuleParams.FIELDS.read(bb);
@@ -293,8 +300,12 @@ class ProtocolTest {
         while (v < vc) {
             assertModParams(v++,vps,0,1,0);
         }
+
+        testEndPadding(bb,remaining);
+
     }
 
+    @SuppressWarnings("unused")
     private static void dumpFieldValues(FieldValues fv) {
         dumpFieldValues(fv,0);
     }
@@ -323,15 +334,12 @@ class ProtocolTest {
         System.out.println();
     }
 
-    private int testPatchSettings(ByteBuffer buf, int vce) {
+    private int testPatchSettings(ByteBuffer buf, int vce, int remaining) {
         BitBuffer bb;
         bb = section(0x4d, buf); //param list
-        //assertEquals(357,bb.limit(), "parameters2 len");
         assertEquals(2,bb.get(2),"location"); //patch parameters
 
         FieldValues patchSettings = PatchParams.FIELDS.read(bb);
-        //dumpFieldValues(patchSettings);
-        //System.out.println(patchSettings);
         int vc = assertFieldEquals(patchSettings,vce, PatchParams.VariationCount);
         assertFieldEquals(patchSettings,0x07, PatchParams.SectionCount);
         sectionHeader(patchSettings, PatchParams.S1,1,16);
@@ -399,6 +407,9 @@ class ProtocolTest {
             assertFieldEquals(s7.get(i),0x01,Settings7.Sustain);
 
         }
+
+        testEndPadding(bb,remaining);
+
         return vc;
     }
 
@@ -438,6 +449,9 @@ class ProtocolTest {
         assertFieldEquals(cable,0x01, Cable.ModuleTo);
         assertFieldEquals(cable,0x00, Cable.ConnectorTo);
 
+        assertEquals(0,bb.getBitsRemaining());
+
+
         bb = section(0x52, buf);
         assertEquals(0xb,bb.limit(), "cable list0 len");
         cl = CableList.FIELDS.read(bb);
@@ -462,6 +476,9 @@ class ProtocolTest {
         assertFieldEquals(cable,0x01, Cable.LinkType);
         assertFieldEquals(cable,0x02, Cable.ModuleTo);
         assertFieldEquals(cable,0x00, Cable.ConnectorTo);
+
+        assertEquals(0,bb.getBitsRemaining());
+
 
     }
 
@@ -527,6 +544,8 @@ class ProtocolTest {
         assertFieldEquals(module,0x00, Module_.ModeCount);
         assertSubfields(module, 0, Module_.Modes);
 
+        assertEquals(0,bb.getBitsRemaining());
+
         bb = section(0x4a, buf);
         assertEquals(20,bb.limit(), "module list0 len");
         modl = ModuleList.FIELDS.read(bb);
@@ -572,7 +591,18 @@ class ProtocolTest {
         assertFieldEquals(module,0x00, Module_.Reserved);
         assertFieldEquals(module,0x00, Module_.ModeCount);
         assertSubfields(module, 0, Module_.Modes);
+        assertEquals(0,bb.getBitsRemaining());
     }
+
+
+    private void testEndPadding(BitBuffer bb, int remaining) {
+        assertEquals(remaining,bb.getBitsRemaining(),"remaining");
+        if (remaining > 0) {
+            assertEquals(0, bb.get(remaining), "end padding");
+            assertEquals(0, bb.getBitsRemaining(), "no bits remaining");
+        }
+    }
+
 
 
     @Test
@@ -606,7 +636,7 @@ class ProtocolTest {
         assertEquals(4,cl.values.size());
 
         bb = section(0x52,buf);
-        cl = CableList.FIELDS.read(bb);
+        CableList.FIELDS.read(bb);
 
         bb = section(0x4d,buf); //param list
         assertEquals(2,bb.get(2),"location"); //patch parameters
@@ -684,6 +714,7 @@ class ProtocolTest {
                 PatchDescription.Category.value(0x00)
         );
         assertEquals(pd,PatchDescription.FIELDS.read(bb),"PatchDescription");
+        testEndPadding(bb,12);
 
         assertEquals(0x2d,buf.get(),"USB extra 1");
         assertEquals(0x00,buf.get(), "USB extra 2");
@@ -692,10 +723,10 @@ class ProtocolTest {
 
         testCableLists(buf,0,1,2,0,1);
 
-        int vc = testPatchSettings(buf,10);
+        int vc = testPatchSettings(buf,10,3);
 
-        testModParams1(buf, vc);
-        testModParams0(buf, vc);
+        testModParams1(buf, vc, 0);
+        testModParams0(buf, vc, 7);
 
         testMorphParams(buf, vc);
 
@@ -709,11 +740,13 @@ class ProtocolTest {
 
         bb = section(0x5b,buf); //Labels
         assertEquals(0x01,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch
+        assertEquals(0x00,bb.get(2),"NumModules");
+        testEndPadding(bb,12);
 
         bb = section(0x5b,buf); //Labels
         assertEquals(0x00,bb.get(2),"Location"); // module labels
         assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+        //testEndPadding(bb,188); //WOAH TODO
 
         assertEquals(0xed77,Util.getShort(buf),"CRC");
         assertFalse(buf.hasRemaining(),"Buf done");
@@ -755,6 +788,7 @@ class ProtocolTest {
         );
         FieldValues pd_ = PatchDescription.FIELDS.read(bb);
         assertEquals(pd,pd_,"PatchDescription");
+        testEndPadding(bb,12);
 
         testModules(buf,0,2,1);
 
@@ -775,11 +809,11 @@ class ProtocolTest {
 
         testCableLists(buf,2,1,0,1,0); //LOL reversed in patch!!!
 
-        int vc = testPatchSettings(buf,9);
+        int vc = testPatchSettings(buf,9,4);
 
-        testModParams1(buf,vc);
+        testModParams1(buf,vc, 5);
 
-        testModParams0(buf,vc);
+        testModParams0(buf,vc, 4);
 
         testMorphParams(buf,vc);
 
@@ -791,11 +825,13 @@ class ProtocolTest {
 
         bb = section(0x5b,buf); //Labels
         assertEquals(0x01,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+        assertEquals(0x00,bb.get(2),"NumModules");
+        testEndPadding(bb,12);
 
         bb = section(0x5b,buf); //Labels
         assertEquals(0x00,bb.get(2),"Location"); // module labels
         assertEquals(0x00,bb.get(2),"NumModules"); // TODO boo no labels in this patch!
+        // testEndPadding(bb,188); // TODO
 
         testModuleNames(buf);
 
@@ -804,6 +840,7 @@ class ProtocolTest {
         for (char c : "Writing notes ...".toCharArray()) {
             assertEquals(c,bb.get());
         }
+        testEndPadding(bb,0);
 
 
         int fcrc = Util.getShort(buf);
