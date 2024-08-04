@@ -2,6 +2,7 @@ package g2lib;
 
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
@@ -9,8 +10,8 @@ import java.util.logging.Logger;
 public class Main {
 
 
-    private static void writePDesc(ByteBuffer data) {
-        try (FileOutputStream fos = new FileOutputStream("data/patchdesc1.msg")) {
+    private static void writeBuffer(ByteBuffer data,String name) {
+        try (FileOutputStream fos = new FileOutputStream("data/" + name)) {
             data.rewind();
             byte[] bs = new byte[data.limit()];
             data.get(bs);
@@ -23,29 +24,56 @@ public class Main {
 
     private static final Logger log = Util.getLogger(Main.class);
 
+    public static class UsbReadThread implements Runnable {
+
+        private final Usb usb;
+        private final Logger log = Util.getLogger(UsbReadThread.class);
+        public final Thread thread;
+        public UsbReadThread(Usb usb) {
+            this.usb = usb;
+            thread = new Thread(this);
+        }
+
+        public final AtomicBoolean go = new AtomicBoolean(true);
+        public final AtomicInteger recd = new AtomicInteger(0);
+        public final LinkedBlockingQueue<Usb.UsbMessage> q = new LinkedBlockingQueue<>();
+
+        @Override
+        public void run() {
+            log.info("Go");
+            while (go.get()) {
+                Usb.UsbMessage r = usb.readInterrupt(500);
+                if (!r.success()) { continue; }
+                recd.incrementAndGet();
+                if (r.extended()) {
+                    r = usb.readBulkRetries(r.size(), 5);
+                    if (r.success()) {
+                        try {
+                            q.put(r);
+                        } catch (Exception e) {
+                            log.severe("extended put failed" + e);
+                        }
+                    }
+                } else {
+                    try {
+                        q.put(r);
+                    } catch (Exception e) {
+                        log.severe("embedded put failed" + e);
+                    }
+                }
+            }
+            log.info("Done");
+
+        }
+    }
+
     public static void main(String[] args) throws Exception {
 
         final Usb usb = Usb.initialize();
 
-        final AtomicBoolean go = new AtomicBoolean(true);
-        final AtomicInteger recd = new AtomicInteger(0);
-        Thread readThread = new Thread(new Runnable() {
 
-            @Override
-            public void run() {
-                log.info("Go");
-                while (go.get()) {
-                    Usb.ReadInterruptResult r = usb.readInterrupt(500);
-                    if (!r.success()) { continue; }
-                    recd.incrementAndGet();
-                    if (!r.extended()) { continue; }
-                    usb.readBulkRetries(r.size(),5);
-                }
-                log.info("Done");
-
-            }
-        });
-        readThread.start();
+        UsbReadThread readThread = new UsbReadThread(usb);
+        readThread.thread.start();
 
 
         // init message
@@ -127,15 +155,25 @@ public class Main {
         ));
 
         int i = 0;
-        while (recd.get() < 12) {
+        while (readThread.recd.get() < 12) {
             Thread.sleep(250);
             if (i++ > 20) { break; }
         }
 
-        System.out.println("Received: " + recd.get());
-        go.set(false);
+        System.out.println("Received: " + readThread.recd.get());
+        System.out.println("Message count: " + readThread.q.size());
+        i = 0;
+        while (!readThread.q.isEmpty()) {
+            Usb.UsbMessage b = readThread.q.poll();
+            log.info(String.format("========= MESSAGE: size=%x extended=%s ============ %s",
+                    b.size(),b.extended(),Util.dumpBufferString(b.buffer())));
+            String fn = String.format("msg%02d_%04x.msg",i,b.crc());
+            writeBuffer(b.buffer(),fn);
+            i++;
+        }
+        readThread.go.set(false);
         System.out.println("joining");
-        readThread.join();
+        readThread.thread.join();
 
         usb.shutdown();
 

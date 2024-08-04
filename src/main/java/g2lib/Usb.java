@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Usb {
@@ -131,12 +130,27 @@ public class Usb {
         return transferred.get();
     }
 
-    public record ReadInterruptResult (int size,boolean extended,ByteBuffer buffer) {
+    public record UsbMessage(int size, boolean extended, int crc, ByteBuffer buffer) {
         public boolean success() { return size > 0 && buffer != null; }
+
+        /*
+        extended: 80 0a 03 00 -- 80/hello machine
+        embedded: 82 01 0c 40 36 04 -- perf version
+        embedded: 62 01 0c 00 7f -- 62 01 (stop message)
+        extended: 01 0c 00 03 -- synth settings [03]
+        extended: 01 0c 00 80 -- 80/"unknown 1" (slot hello?)
+        extended: 01 0c 00 29 -- perf settings [29 "perf name"]
+        embedded: 72 01 0c 00 1e -- "unknown 2" 1e?
+        embedded: 82 01 0c 40 36 01 -- slot version
+        extended: 01 09 00 21 -- patch description, slot 1
+        extended: 01 09 00 27 -- patch name, slot 1
+        extended: 01 09 00 69 -- cable list, slot 1
+        extended: 01 09 00 6f -- textpad, slot 1
+         */
     }
 
-    public ReadInterruptResult readInterruptRetry() {
-        ReadInterruptResult r = new ReadInterruptResult(-1,false,null);
+    public UsbMessage readInterruptRetry() {
+        UsbMessage r = new UsbMessage(-1,false,-1,null);
         for (int i = 0; i < 5; i++) {
             r = readInterrupt(2000);
             if (r.success()) { return r; }
@@ -144,7 +158,7 @@ public class Usb {
         log.info("Interrupt retries exhausted");
         return r;
     }
-    public ReadInterruptResult readInterrupt(int timeout) {
+    public UsbMessage readInterrupt(int timeout) {
         ByteBuffer buffer = BufferUtils.allocateByteBuffer(16);
         IntBuffer transferred = BufferUtils.allocateIntBuffer();
         int r = LibUsb.interruptTransfer(handle, (byte) 0x81, buffer, transferred, timeout);
@@ -153,14 +167,15 @@ public class Usb {
                 log.info(String.format("--------------- Read Interrupt failure: %s ----------------",
                         ERRORS.get(r)));
             }
-            return new ReadInterruptResult(r,false,null);
+            return new UsbMessage(r,false,-1,null);
         } else {
             int type = buffer.get(0) & 0xf;
             boolean extended = type == 1;
             boolean embedded = type == 2;
+            int crc = 0;
             if (embedded) {
                 int dil = (buffer.get(0) & 0xf0) >> 4;
-                int crc = CRC16.crc16(buffer, 1, dil - 2);
+                crc = CRC16.crc16(buffer, 1, dil - 2);
                 log.info(String.format("--------------- Read Interrupt embedded, crc: %x %x", crc, buffer.position(dil - 1).getShort()) +
                         Util.dumpBufferString(buffer));
 
@@ -170,27 +185,28 @@ public class Usb {
                 log.info(String.format("--------------- Read Interrupt extended, size: %x", size) +
                         Util.dumpBufferString(buffer));
             }
-            return new ReadInterruptResult(size,extended,buffer);
+            return new UsbMessage(size,extended,crc,buffer);
         }
     }
 
-    public ByteBuffer readBulkRetries(int size, int retries) {
+    public UsbMessage readBulkRetries(int size, int retries) {
+        UsbMessage r = new UsbMessage(-1,true,-1,null);
         for (int i = 0; i < retries; i++) {
-            ByteBuffer r = readBulk(size);
-            if (r != null) {
+            r = readBulk(size);
+            if (r.success()) {
                 return r;
             }
         }
-        return null;
+        return r;
     }
 
-    public ByteBuffer readBulk(int size) {
+    public UsbMessage readBulk(int size) {
         ByteBuffer buffer = BufferUtils.allocateByteBuffer(size);
         IntBuffer transferred = BufferUtils.allocateIntBuffer();
         int r = LibUsb.bulkTransfer(handle, (byte) 0x82, buffer, transferred, 5000);
         if (r < 0) {
             log.info("--------------- Read Bulk failure: " + ERRORS.get(r) + " ---------------");
-            return null;
+            return new UsbMessage(r,true,-1,null);
         } else {
             int tfrd = transferred.get();
             if (tfrd > 0) {
@@ -200,9 +216,9 @@ public class Usb {
                 int ecrc = CRC16.crc16(buffer, 0, len - 2);
                 log.info(String.format("--------------- Read Bulk size: %x crc: %x %x", tfrd, ecrc, buffer.position(len - 2).getShort()) +
                     Util.dumpBufferString(buffer));
-                return buffer;
+                return new UsbMessage(size,true,ecrc,buffer);
             } else {
-                return null;
+                return new UsbMessage(0,true,-1,null);
             }
         }
     }
@@ -218,16 +234,6 @@ public class Usb {
         return sendBulk(msg, data);
     }
 
-    public ByteBuffer readExtended() {
-        ReadInterruptResult r = readInterruptRetry();
-        if (r.size > 0) {
-
-            return readBulkRetries(r.size, 5);
-
-        } else {
-            return null;
-        }
-    }
 
     /**
      * Dumps the specified device to stdout.
