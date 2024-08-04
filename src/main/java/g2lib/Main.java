@@ -37,8 +37,8 @@ public class Main {
                 while (go.get()) {
                     Usb.ReadInterruptResult r = usb.readInterrupt(500);
                     if (!r.success()) { continue; }
-                    if (!r.extended()) { continue; }
                     recd.incrementAndGet();
+                    if (!r.extended()) { continue; }
                     usb.readBulkRetries(r.size(),5);
                 }
                 log.info("Done");
@@ -101,10 +101,6 @@ public class Main {
                 ,0 // patch version, 0 from above
                 ,0x3c // Q_PATCH
                 ));
-        //ByteBuffer pdesc = usb.readExtended(); // 01 08 00 21: C_PATCH_DESCR
-        //if (pdesc != null) {
-            //writePDesc(pdesc);
-        //}
 
 
         usb.sendBulk("slot 1 name",Util.asBytes(
@@ -113,7 +109,6 @@ public class Main {
                 ,0 // patch version, 0 from above
                 ,0x28 // Q_PATCH_NAME
         ));
-        //Usb.ReadInterruptResult r = usb.readInterrupt(2000);
 
         usb.sendBulk("slot 1 curnote",Util.asBytes(
                 0x01
@@ -121,7 +116,7 @@ public class Main {
                 ,0 // patch version, 0 from above
                 ,0x68 // Q_CURRENT_NOTE
         ));
-        // usb.readInterruptRetry(); // TODO rarely succeeds
+
 
 
         usb.sendBulk("slot 1 text",Util.asBytes(
@@ -130,10 +125,13 @@ public class Main {
                 ,0 // patch version, 0 from above
                 ,0x6e //Q_PATCH_TEXT
         ));
-        // usb.readExtended(); //TODO rarely succeeds
 
-        System.out.println("waiting");
-        Thread.sleep(10000);
+        int i = 0;
+        while (recd.get() < 12) {
+            Thread.sleep(250);
+            if (i++ > 20) { break; }
+        }
+
         System.out.println("Received: " + recd.get());
         go.set(false);
         System.out.println("joining");
