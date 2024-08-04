@@ -3,6 +3,7 @@ package g2lib;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 public class Main {
@@ -20,16 +21,16 @@ public class Main {
         }
     }
 
-
+    private static final Logger log = Util.getLogger(Main.class);
 
     public static void main(String[] args) throws Exception {
 
         final Usb usb = Usb.initialize();
 
         final AtomicBoolean go = new AtomicBoolean(true);
+        final AtomicInteger recd = new AtomicInteger(0);
         Thread readThread = new Thread(new Runnable() {
 
-            Logger log = Logger.getLogger("ReadThread");
             @Override
             public void run() {
                 log.info("Go");
@@ -37,6 +38,7 @@ public class Main {
                     Usb.ReadInterruptResult r = usb.readInterrupt(500);
                     if (!r.success()) { continue; }
                     if (!r.extended()) { continue; }
+                    recd.incrementAndGet();
                     usb.readBulkRetries(r.size(),5);
                 }
                 log.info("Done");
@@ -62,13 +64,13 @@ public class Main {
                 ,0x7d // S_START_STOP_COM
                 ,0x01 // stop
                 );
-        //usb.readInterrupt(2000); //0c 00 7f: OK
+        //usb.readInterrupt(2000); //0c 00 7f: OK  x
 
         //synth settings
         usb.sendCmdRequest("Synth settings"
                 ,0x02 // Q_SYNTH_SETTINGS
         );
-        //usb.readExtended(); // 01 0c 00 03 -> 03 is S_SYNTH_SETTINGS
+        //usb.readExtended(); // 01 0c 00 03 -> 03 is S_SYNTH_SETTINGS  -- 1
 
         //unknown 1
         usb.sendCmdRequest("unknown 1"
@@ -132,6 +134,7 @@ public class Main {
 
         System.out.println("waiting");
         Thread.sleep(10000);
+        System.out.println("Received: " + recd.get());
         go.set(false);
         System.out.println("joining");
         readThread.join();

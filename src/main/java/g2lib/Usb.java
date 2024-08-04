@@ -6,6 +6,8 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Usb {
     public static final int VENDOR_ID = 0xffc;
@@ -17,11 +19,14 @@ public class Usb {
     private final Device device;
     private final DeviceHandle handle;
 
+    private final Logger log = Util.getLogger(getClass());
+
     public Usb(Context context, Device device, DeviceHandle handle) {
         this.context = context;
         this.device = device;
         this.handle = handle;
     }
+    
 
     private static Map<Integer, String> errorMap() {
         TreeMap<Integer, String> m = new TreeMap<>();
@@ -62,7 +67,7 @@ public class Usb {
             final DeviceDescriptor descriptor = new DeviceDescriptor();
             retcode(LibUsb.getDeviceDescriptor(device, descriptor), "Unable to read device descriptor");
             if (descriptor.idVendor() == VENDOR_ID && descriptor.idProduct() == PRODUCT_ID) {
-                dumpDevice(device);
+                //dumpDevice(device);
                 return device;
             } else {
                 LibUsb.unrefDevice(device);
@@ -104,7 +109,7 @@ public class Usb {
     }
 
     public int sendBulk(String msg, byte[] data) {
-        System.out.printf("--------------- Send Bulk: %s ----------------\n", msg);
+
 
         int size = data.length + 4;
         ByteBuffer buffer = BufferUtils.allocateByteBuffer(size);
@@ -113,15 +118,15 @@ public class Usb {
         buffer.put(data);
         int crc = CRC16.crc16(data, 0, data.length);
         //dumpBytes(data);
-        System.out.printf("send crc: %x %x %x\n", crc, crc / 256, crc % 256);
+        log.info(String.format("send crc: %x %x %x", crc, crc / 256, crc % 256));
         buffer.put((byte) (crc / 256));
         buffer.put((byte) (crc % 256));
-        Util.dumpBuffer(buffer);
+        log.info(String.format("--------------- Send Bulk: %s ----------------", msg) + Util.dumpBufferString(buffer));
         IntBuffer transferred = BufferUtils.allocateIntBuffer();
         int r = LibUsb.bulkTransfer(handle, (byte) 0x03, buffer, transferred, 10000);
         if (r >= 0) {
             //transferred.rewind();
-            System.out.println("Sent: " + transferred.get(0));
+            log.info("Sent: " + transferred.get(0));
         }
         return transferred.get();
     }
@@ -136,7 +141,7 @@ public class Usb {
             r = readInterrupt(2000);
             if (r.success()) { return r; }
         }
-        System.out.println("Interrupt retries exhausted");
+        log.info("Interrupt retries exhausted");
         return r;
     }
     public ReadInterruptResult readInterrupt(int timeout) {
@@ -145,38 +150,36 @@ public class Usb {
         int r = LibUsb.interruptTransfer(handle, (byte) 0x81, buffer, transferred, timeout);
         if (r < 0) {
             if (r != -7) { //timeout
-                System.out.println("--------------- Read Interrupt ----------------");
-                System.out.println("interrupt failure: " + ERRORS.get(r));
+                log.info(String.format("--------------- Read Interrupt failure: %s ----------------",
+                        ERRORS.get(r)));
             }
             return new ReadInterruptResult(r,false,null);
         } else {
-            System.out.println("--------------- Read Interrupt ----------------");
-            System.out.println("interrupt success: " + transferred.get());
-            Util.dumpBuffer(buffer);
             int type = buffer.get(0) & 0xf;
             boolean extended = type == 1;
             boolean embedded = type == 2;
             if (embedded) {
                 int dil = (buffer.get(0) & 0xf0) >> 4;
                 int crc = CRC16.crc16(buffer, 1, dil - 2);
-                System.out.printf("embedded, crc: %x %x\n", crc, buffer.position(dil - 1).getShort());
+                log.info(String.format("--------------- Read Interrupt embedded, crc: %x %x", crc, buffer.position(dil - 1).getShort()) +
+                        Util.dumpBufferString(buffer));
+
             }
             int size = buffer.position(1).getShort();
             if (extended) {
-                System.out.printf("extended, size: %x\n", size);
+                log.info(String.format("--------------- Read Interrupt extended, size: %x", size) +
+                        Util.dumpBufferString(buffer));
             }
             return new ReadInterruptResult(size,extended,buffer);
         }
     }
 
     public ByteBuffer readBulkRetries(int size, int retries) {
-        System.out.println("---------------- Read Bulk ---------------");
         for (int i = 0; i < retries; i++) {
             ByteBuffer r = readBulk(size);
             if (r != null) {
                 return r;
             }
-            System.out.println("Retrying ...");
         }
         return null;
     }
@@ -186,22 +189,19 @@ public class Usb {
         IntBuffer transferred = BufferUtils.allocateIntBuffer();
         int r = LibUsb.bulkTransfer(handle, (byte) 0x82, buffer, transferred, 5000);
         if (r < 0) {
-            System.out.println("bulk read failed: " + ERRORS.get(r));
+            log.info("--------------- Read Bulk failure: " + ERRORS.get(r) + " ---------------");
             return null;
         } else {
             int tfrd = transferred.get();
             if (tfrd > 0) {
-                System.out.printf("bulk read success: %x\n", tfrd);
                 // buffer.rewind();
                 int len = buffer.limit();
-                System.out.printf("Recd %x:\n", len);
                 //dumpBytes(recd);
-                Util.dumpBuffer(buffer);
                 int ecrc = CRC16.crc16(buffer, 0, len - 2);
-                System.out.printf("crc: %x %x\n", ecrc, buffer.position(len - 2).getShort());
+                log.info(String.format("--------------- Read Bulk size: %x crc: %x %x", tfrd, ecrc, buffer.position(len - 2).getShort()) +
+                    Util.dumpBufferString(buffer));
                 return buffer;
             } else {
-                System.out.println("Nothing read.");
                 return null;
             }
         }

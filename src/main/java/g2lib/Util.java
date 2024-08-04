@@ -2,11 +2,31 @@ package g2lib;
 
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Util {
+
+    static final Logger log = getLogger(Util.class);
+
+    public static final Logger getLogger(Class<?> c) {
+        Logger l = Logger.getLogger(c.getName());
+        l.setUseParentHandlers(false);
+        l.addHandler(new ConsoleHandler() {
+            {setOutputStream(System.out);}
+        });
+        return l;
+    }
+
     public static void dumpBuffer(ByteBuffer buffer) {
+        log.info(dumpBufferString(buffer));
+    }
+
+    public static String dumpBufferString(ByteBuffer buffer) {
         StringBuilder hex = new StringBuilder();
         StringBuilder ascii = new StringBuilder();
+        StringBuilder output = new StringBuilder("\n");
         int pos = buffer.position();
         buffer.rewind();
         int i = 0;
@@ -15,7 +35,7 @@ public class Util {
             hex.append(String.format("%02x ", d));
             ascii.append((d >= 33 && d < 126) ? String.format("%c ", d) : ". ");
             if (i % 16 == 15) {
-                System.out.printf("%s  %s\n", hex, ascii);
+                output.append(String.format("%s  %s\n", hex, ascii));
                 hex = new StringBuilder();
                 ascii = new StringBuilder();
             }
@@ -24,9 +44,10 @@ public class Util {
         if (i % 16 > 0) {
             int pad = 3 * (16 - (i % 16));
             //System.out.printf("pad %d %d\n",pad,i % 16);
-            System.out.printf("%s %" + pad + "s %s\n", hex, "", ascii);
+            output.append(String.format("%s %" + pad + "s %s\n", hex, "", ascii));
         }
         buffer.position(pos);
+        return output.toString();
     }
 
     public static int b2i(byte b) {
