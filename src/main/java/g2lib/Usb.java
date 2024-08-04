@@ -126,15 +126,31 @@ public class Usb {
         return transferred.get();
     }
 
-    public int readInterrupt() {
-        System.out.println("--------------- Read Interrupt ----------------");
+    public record ReadInterruptResult (int size,boolean extended,ByteBuffer buffer) {
+        public boolean success() { return size > 0 && buffer != null; }
+    }
+
+    public ReadInterruptResult readInterruptRetry() {
+        ReadInterruptResult r = new ReadInterruptResult(-1,false,null);
+        for (int i = 0; i < 5; i++) {
+            r = readInterrupt(2000);
+            if (r.success()) { return r; }
+        }
+        System.out.println("Interrupt retries exhausted");
+        return r;
+    }
+    public ReadInterruptResult readInterrupt(int timeout) {
         ByteBuffer buffer = BufferUtils.allocateByteBuffer(16);
         IntBuffer transferred = BufferUtils.allocateIntBuffer();
-        int r = LibUsb.interruptTransfer(handle, (byte) 0x81, buffer, transferred, 2000);
+        int r = LibUsb.interruptTransfer(handle, (byte) 0x81, buffer, transferred, timeout);
         if (r < 0) {
-            System.out.println("interrupt failure: " + ERRORS.get(r));
-            return r;
+            if (r != -7) { //timeout
+                System.out.println("--------------- Read Interrupt ----------------");
+                System.out.println("interrupt failure: " + ERRORS.get(r));
+            }
+            return new ReadInterruptResult(r,false,null);
         } else {
+            System.out.println("--------------- Read Interrupt ----------------");
             System.out.println("interrupt success: " + transferred.get());
             Util.dumpBuffer(buffer);
             int type = buffer.get(0) & 0xf;
@@ -149,7 +165,7 @@ public class Usb {
             if (extended) {
                 System.out.printf("extended, size: %x\n", size);
             }
-            return size;
+            return new ReadInterruptResult(size,extended,buffer);
         }
     }
 
@@ -203,10 +219,10 @@ public class Usb {
     }
 
     public ByteBuffer readExtended() {
-        int size = readInterrupt();
-        if (size > 0) {
+        ReadInterruptResult r = readInterruptRetry();
+        if (r.size > 0) {
 
-            return readBulkRetries(size, 5);
+            return readBulkRetries(r.size, 5);
 
         } else {
             return null;

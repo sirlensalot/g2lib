@@ -126,6 +126,8 @@ class ProtocolTest {
         assertFieldEquals(n,0x04,ModuleName.ModuleIndex);
         assertFieldEquals(n,"2-Out1",ModuleName.Name);
 
+        testEndPadding(bb,8);
+
 
         bb = section(0x5a, buf); //Module Names
         assertEquals(0x00,bb.get(2),"Location");
@@ -785,6 +787,25 @@ class ProtocolTest {
     }
 
 
+    private static ByteBuffer patchHeader() {
+        ByteBuffer header = ByteBuffer.allocate(80);
+        for (String s : new String[]{
+                "Version=Nord Modular G2 File Format 1",
+                "Type=Patch",
+                "Version=23",
+                "Info=BUILD 320"
+        }) {
+            for (char c : s.toCharArray()) {
+                header.put((byte) c);
+            }
+            header.put((byte)0x0d).put((byte)0x0a);
+        }
+        header.put((byte)0);
+        header.rewind();
+        return header;
+    }
+
+
     @Test
     public void readPatch() throws Exception {
         ByteBuffer buf = Util.readFile("data/simplesynth001-20240802.pch2");
@@ -824,6 +845,12 @@ class ProtocolTest {
         testModules(buf,0,2,1);
 
         bb = section(0x69,buf); //CurrentNote
+        assertEquals(0x13,bb.limit(),"CurrentNote length");
+        Util.dumpBuffer(bb.toBuffer());
+        /*
+        80 00 01 60 00 01 00 00 08 00 00 40 00 02 00 00   . . . ` . . . . . . . @ . . . .
+        10 00 00
+        */
         FieldValues cns = CurrentNote.FIELDS.read(bb);
 
         assertFieldEquals(cns,0x40,CurrentNote.Note);
@@ -837,6 +864,7 @@ class ProtocolTest {
             assertFieldEquals(n,0x00,NoteData.Attack);
             assertFieldEquals(n,0x00,NoteData.Release);
         }
+        testEndPadding(bb,0);
 
         testCableLists(buf,2,1,0,1,0); //LOL reversed in patch!!!
 
@@ -861,7 +889,12 @@ class ProtocolTest {
         testModuleNames(buf);
 
         bb = section(0x6f,buf);
-        assertEquals(17,bb.limit(),"TextPad"); //empty
+        assertEquals(0x11,bb.limit(),"TextPad"); //empty
+        Util.dumpBuffer(bb.toBuffer());
+        /*
+        57 72 69 74 69 6e 67 20 6e 6f 74 65 73 20 2e 2e   W r i t i n g . n o t e s . . .
+        2e                                                .
+        */
         for (char c : "Writing notes ...".toCharArray()) {
             assertEquals(c,bb.get());
         }
@@ -875,23 +908,6 @@ class ProtocolTest {
 
     }
 
-    private static ByteBuffer patchHeader() {
-        ByteBuffer header = ByteBuffer.allocate(80);
-        for (String s : new String[]{
-                "Version=Nord Modular G2 File Format 1",
-                "Type=Patch",
-                "Version=23",
-                "Info=BUILD 320"
-        }) {
-            for (char c : s.toCharArray()) {
-                header.put((byte) c);
-            }
-            header.put((byte)0x0d).put((byte)0x0a);
-        }
-        header.put((byte)0);
-        header.rewind();
-        return header;
-    }
 
 
 }

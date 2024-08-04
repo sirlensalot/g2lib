@@ -66,4 +66,15 @@ public class Util {
         return buf;
     }
 
+    public static void dumpAllShifts(ByteBuffer buf) {
+        buf.rewind();
+        Util.dumpBuffer(buf);
+        for (int i = 1; i < 7; i++) {
+            buf.rewind();
+            System.out.println("Shift " + i);
+            Util.dumpBuffer(BitBuffer.shiftedBuffer(buf,i));
+        }
+        buf.rewind();
+    }
+
 }
