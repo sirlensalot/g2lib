@@ -27,7 +27,7 @@ public class StringField extends AbstractField implements Field {
     public void read(BitBuffer bb, List<FieldValues> values) {
         StringBuilder sb = new StringBuilder();
         int i = 0;
-        while (bb.getBitsRemaining() > 8) {
+        while (bb.getBitsRemaining() >= 8) {
             if (length > 0 && i++ > length) { break; }
             int c = bb.get(8);
             if (c != 0) {

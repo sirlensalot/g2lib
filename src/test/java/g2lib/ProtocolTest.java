@@ -1,9 +1,6 @@
 package g2lib;
 
-import g2lib.protocol.FieldEnum;
-import g2lib.protocol.FieldValue;
-import g2lib.protocol.FieldValues;
-import g2lib.protocol.SubfieldsValue;
+import g2lib.protocol.*;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
@@ -126,7 +123,7 @@ class ProtocolTest {
         assertFieldEquals(n,0x04,ModuleName.ModuleIndex);
         assertFieldEquals(n,"2-Out1",ModuleName.Name);
 
-        testEndPadding(bb,8);
+        testEndPadding(bb,0);
 
 
         bb = section(0x5a, buf); //Module Names
@@ -148,7 +145,7 @@ class ProtocolTest {
         assertFieldEquals(n,0x03,ModuleName.ModuleIndex);
         assertFieldEquals(n,"2-Out1",ModuleName.Name);
 
-        testEndPadding(bb,8);
+        testEndPadding(bb,0);
     }
 
     private void testKnobAssignments(ByteBuffer buf) {
@@ -493,8 +490,10 @@ class ProtocolTest {
         BitBuffer bb;
         bb = section(0x4a, buf);
         assertEquals(27,bb.limit(), "module list len");
+
+        assertEquals(1,bb.get(2),"location");
         FieldValues modl = ModuleList.FIELDS.read(bb);
-        assertFieldEquals(modl,1,ModuleList.Location);
+        //assertFieldEquals(modl,1,ModuleList.Location);
         List<FieldValues> mods = assertSubfields(modl, 4, ModuleList.Modules);
 
         FieldValues module;
@@ -555,8 +554,9 @@ class ProtocolTest {
 
         bb = section(0x4a, buf);
         assertEquals(20,bb.limit(), "module list0 len");
+        assertEquals(0,bb.get(2),"location");
         modl = ModuleList.FIELDS.read(bb);
-        assertFieldEquals(modl,0,ModuleList.Location);
+        //assertFieldEquals(modl,0,ModuleList.Location);
         mods = assertSubfields(modl, 3, ModuleList.Modules);
 
 
@@ -630,12 +630,14 @@ class ProtocolTest {
         assertEquals(0x00,buf.get(), "USB extra 2");
 
         bb = section(0x4a,buf);
+        assertEquals(1,bb.get(2),"location");
         FieldValues modl = ModuleList.FIELDS.read(bb);
-        assertFieldEquals(modl,1,ModuleList.Location);
+        //assertFieldEquals(modl,1,ModuleList.Location);
 
         bb = section(0x4a,buf);
+        assertEquals(0,bb.get(2),"location");
         modl = ModuleList.FIELDS.read(bb);
-        assertFieldEquals(modl,0,ModuleList.Location);
+        //assertFieldEquals(modl,0,ModuleList.Location);
 
         //52 should be next, CABLE_LIST
         bb = section(0x52,buf);
@@ -787,30 +789,15 @@ class ProtocolTest {
         testEndPadding(bb,6);
     }
 
-
-    private static ByteBuffer patchHeader() {
-        ByteBuffer header = ByteBuffer.allocate(80);
-        for (String s : new String[]{
-                "Version=Nord Modular G2 File Format 1",
-                "Type=Patch",
-                "Version=23",
-                "Info=BUILD 320"
-        }) {
-            for (char c : s.toCharArray()) {
-                header.put((byte) c);
-            }
-            header.put((byte)0x0d).put((byte)0x0a);
-        }
-        header.put((byte)0);
-        header.rewind();
-        return header;
+    @Test
+    public void readPatchPatch() throws Exception {
+        Patch p = Patch.readFromFile("data/simplesynth001-20240802.pch2");
     }
-
 
     @Test
     public void readPatch() throws Exception {
         ByteBuffer buf = Util.readFile("data/simplesynth001-20240802.pch2");
-        ByteBuffer header = patchHeader();
+        ByteBuffer header = Patch.patchHeader();
         while (header.hasRemaining()) {
             assertEquals(header.get(),buf.get(),"header check");
         }
@@ -892,13 +879,8 @@ class ProtocolTest {
         bb = section(0x6f,buf);
         assertEquals(0x11,bb.limit(),"TextPad"); //empty
         Util.dumpBuffer(bb.toBuffer());
-        /*
-        57 72 69 74 69 6e 67 20 6e 6f 74 65 73 20 2e 2e   W r i t i n g . n o t e s . . .
-        2e                                                .
-        */
-        for (char c : "Writing notes ...".toCharArray()) {
-            assertEquals(c,bb.get());
-        }
+        FieldValues tp = TextPad.FIELDS.read(bb);
+        assertFieldEquals(tp,"Writing notes ...",TextPad.Text);
         testEndPadding(bb,0);
 
 

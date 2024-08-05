@@ -3,7 +3,6 @@ package g2lib;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
 import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Util {
@@ -98,4 +97,13 @@ public class Util {
         buf.rewind();
     }
 
+    public static ByteBuffer sliceAhead(ByteBuffer buffer, int length) {
+        ByteBuffer slice = buffer.slice().limit(length);
+        advanceBuffer(buffer, length);
+        return slice;
+    }
+
+    public static void advanceBuffer(ByteBuffer buffer, int length) {
+        buffer.position(buffer.position()+ length);
+    }
 }

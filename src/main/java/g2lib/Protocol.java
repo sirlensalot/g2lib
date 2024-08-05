@@ -50,7 +50,7 @@ public class Protocol {
     }
 
     public enum ModuleList implements FieldEnum {
-        Location(2),
+        //Location(2),
         ModuleCount(8),
         Modules(Module_.FIELDS,ModuleList.ModuleCount);
         ModuleList(int size) { f = new SizedField(this,size); }
@@ -484,6 +484,13 @@ public class Protocol {
         private final Field f;
         public Field field() { return f; }
         public static final Fields FIELDS = new Fields(ParamLabel.class,values());
+    }
+
+    public enum TextPad implements FieldEnum {
+        Text;
+        private final Field f = new StringField(this);
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(TextPad.class,values());
     }
 
 }

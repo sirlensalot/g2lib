@@ -138,8 +138,9 @@ public class BitBuffer {
     }
 
     public static BitBuffer sliceAhead(ByteBuffer buffer, int length) {
-        BitBuffer bb = new BitBuffer(buffer.slice().limit(length));
-        buffer.position(buffer.position()+length);
+        ByteBuffer slice = Util.sliceAhead(buffer, length);
+        BitBuffer bb = new BitBuffer(slice);
         return bb;
     }
+
 }
