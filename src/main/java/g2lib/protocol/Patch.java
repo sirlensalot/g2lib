@@ -63,8 +63,8 @@ public class Patch {
         STextPad(TextPad.FIELDS,0x6f  );
 
         private final Fields fields;
-        private final int type;
-        private final Integer location;
+        public final int type;
+        public final Integer location;
         Sections(Fields fields, int type, int location) {
             this.fields = fields;
             this.type = type;
@@ -109,6 +109,7 @@ public class Patch {
     public final LinkedHashMap<Sections,Section> sections = new LinkedHashMap<>();
     public String text;
     public String name;
+    public int slot = -1;
 
     public static <T> T withSliceAhead(ByteBuffer buf, int length, Function<ByteBuffer,T> f) {
         return f.apply(Util.sliceAhead(buf,length));
@@ -123,9 +124,9 @@ public class Patch {
 
     public static Patch readFromMessage(ByteBuffer buf) throws Exception {
         expectWarn(buf,0x01,"Message","Cmd");
-        int slot = buf.get();
-        expectWarn(buf,0x00,"Message","PatchVersion");
         Patch patch = new Patch();
+        patch.slot = buf.get();
+        expectWarn(buf,0x00,"Message","PatchVersion");
 
         for (Sections ss : MSG_SECTIONS) {
             patch.readSection(buf,ss);
@@ -179,6 +180,10 @@ public class Patch {
         FieldValues fvs = s.fields.read(bb);
         log.info("read: " + s + ": " + fvs);
         sections.put(s,new Section(s,fvs));
+    }
+
+    public Section getSection(Sections key) {
+        return sections.get(key);
     }
 
 
