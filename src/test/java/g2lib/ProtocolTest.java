@@ -694,6 +694,11 @@ class ProtocolTest {
 
     }
 
+    @Test
+    void patchFromMessage() throws Exception {
+        ByteBuffer buf = Util.readFile("data/patchdesc1.msg");
+        Patch p = Patch.readFromMessage(buf);
+    }
 
     @Test
     void patchDesc() throws Exception {

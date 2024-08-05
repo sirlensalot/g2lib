@@ -85,6 +85,27 @@ public class Patch {
         }
     }
 
+    public static final Sections[] FILE_SECTIONS = Sections.values();
+
+    public static final Sections[] MSG_SECTIONS = new Sections[] {
+            Sections.SPatchDescription,
+            Sections.SModuleList1,
+            Sections.SModuleList0,
+            Sections.SCableList1,
+            Sections.SCableList0,
+            Sections.SPatchParams,
+            Sections.SModuleParams1,
+            Sections.SModuleParams0,
+            Sections.SMorphParameters,
+            Sections.SKnobAssignments,
+            Sections.SControlAssignments,
+            Sections.SModuleNames1,
+            Sections.SModuleNames0,
+            Sections.SMorphLabels,
+            Sections.SModuleLabels1,
+            Sections.SModuleLabels0
+    };
+
     public final LinkedHashMap<Sections,Section> sections = new LinkedHashMap<>();
     public String text;
     public String name;
@@ -98,6 +119,23 @@ public class Patch {
         if (b != expected) {
             log.warning(String.format("%s: expected %x, found %x at %s:%d",msg,expected,filePath,buf.position()-1));
         }
+    }
+
+    public static Patch readFromMessage(ByteBuffer buf) throws Exception {
+        expectWarn(buf,0x01,"Message","Cmd");
+        int slot = buf.get();
+        expectWarn(buf,0x00,"Message","PatchVersion");
+        Patch patch = new Patch();
+
+        for (Sections ss : MSG_SECTIONS) {
+            patch.readSection(buf,ss);
+            if (ss == Sections.SPatchDescription) {
+                expectWarn(buf,0x2d,"Message","USB extra 1");
+                expectWarn(buf,0x00,"Message","USB extra 2");
+            }
+        }
+
+        return patch;
     }
 
 
@@ -117,7 +155,7 @@ public class Patch {
         expectWarn(fileBuffer,0x00,filePath,"header");
         Patch patch = new Patch();
 
-        for (Sections ss : Sections.values()) {
+        for (Sections ss : FILE_SECTIONS) {
             patch.readSection(fileBuffer,ss);
         }
 
