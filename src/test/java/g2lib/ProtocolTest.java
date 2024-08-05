@@ -423,9 +423,10 @@ class ProtocolTest {
         BitBuffer bb;
         bb = section(0x52, buf);
         assertEquals(0xf,bb.limit(), "cable list1 len");
+        assertEquals(1,bb.get(2),"location");
+
         FieldValues cl = CableList.FIELDS.read(bb);
         //dumpFieldValues(cl);
-        assertFieldEquals(cl,1,CableList.Location);
         assertFieldEquals(cl,0,CableList.Reserved);
         assertFieldEquals(cl,3,CableList.CableCount);
         List<FieldValues> cs = assertSubfields(cl, 3, CableList.Cables);
@@ -460,9 +461,9 @@ class ProtocolTest {
 
         bb = section(0x52, buf);
         assertEquals(0xb,bb.limit(), "cable list0 len");
+        assertEquals(0,bb.get(2),"location");
         cl = CableList.FIELDS.read(bb);
         //dumpFieldValues(cl);
-        assertFieldEquals(cl,0,CableList.Location);
         assertFieldEquals(cl,0,CableList.Reserved);
         assertFieldEquals(cl,2,CableList.CableCount);
         cs = assertSubfields(cl, 2, CableList.Cables);
@@ -638,10 +639,11 @@ class ProtocolTest {
 
         //52 should be next, CABLE_LIST
         bb = section(0x52,buf);
-        FieldValues cl = CableList.FIELDS.read(bb);
-        assertEquals(4,cl.values.size());
+        assertEquals(1,bb.get(2),"location");
+        CableList.FIELDS.read(bb);
 
         bb = section(0x52,buf);
+        assertEquals(0,bb.get(2),"location");
         CableList.FIELDS.read(bb);
 
         bb = section(0x4d,buf); //param list
@@ -756,15 +758,14 @@ class ProtocolTest {
 
     private void testModuleLabels(ByteBuffer buf) {
         BitBuffer bb = section(0x5b,buf); //Labels
+        assertEquals(0x01,bb.get(2),"Location");
         FieldValues mlss = ModuleLabels.FIELDS.read(bb);
-        assertFieldEquals(mlss,0x01,ModuleLabels.Location); // module labels
         assertFieldEquals(mlss,0x00,ModuleLabels.ModuleCount);
         testEndPadding(bb,6);
 
         bb = section(0x5b, buf); //Labels
+        assertEquals(0x00,bb.get(2),"Location");
         mlss = ModuleLabels.FIELDS.read(bb);
-
-        assertFieldEquals(mlss,0x00,ModuleLabels.Location);
         assertFieldEquals(mlss,0x01,ModuleLabels.ModuleCount);
         FieldValues mls = assertSubfields(mlss,1,ModuleLabels.ModLabels).removeFirst();
         assertFieldEquals(mls,0x02,ModuleLabel.ModuleIndex);

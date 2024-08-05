@@ -17,7 +17,6 @@ public class Protocol {
     }
 
     public enum CableList implements FieldEnum {
-        Location(2),
         Reserved(12),
         CableCount(10),
         Cables(Cable.FIELDS,CableList.CableCount);
@@ -447,7 +446,6 @@ public class Protocol {
     }
 
     public enum ModuleLabels implements FieldEnum {
-        Location(2),
         ModuleCount(8),
         ModLabels(ModuleLabel.FIELDS,ModuleLabels.ModuleCount);
         ModuleLabels(int size) { f = new SizedField(this,size); }
