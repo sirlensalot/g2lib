@@ -108,6 +108,7 @@ public class Patch {
     public String text;
     public String name;
     public int slot = -1;
+    public int version = -1;
 
     public static <T> T withSliceAhead(ByteBuffer buf, int length, Function<ByteBuffer,T> f) {
         return f.apply(Util.sliceAhead(buf,length));
@@ -122,7 +123,7 @@ public class Patch {
 
     public static Patch readFromMessage(ByteBuffer buf) throws Exception {
         Patch patch = new Patch();
-        patch.slot = readMessageHeader(buf);
+        patch.readMessageHeader(buf);
 
         for (Sections ss : MSG_SECTIONS) {
             patch.readSection(buf,ss);
@@ -134,11 +135,27 @@ public class Patch {
         return patch;
     }
 
-    public static int readMessageHeader(ByteBuffer buf) throws Exception {
+    public void readMessageHeader(ByteBuffer buf) throws Exception {
         expectWarn(buf,0x01,"Message","Cmd");
         int slot = buf.get();
-        expectWarn(buf,0x00,"Message","PatchVersion");
-        return slot;
+        if (this.slot == -1) {
+            this.slot = slot;
+        } else if (this.slot != slot) {
+            throw new IllegalArgumentException(String.format("Slot mismatch: %d, %d",this.slot,slot));
+        }
+        int version = buf.get();
+        if (this.version == -1) {
+            this.version = version;
+        } else if (this.version != version) {
+            throw new IllegalArgumentException(String.format("Slot mismatch: %d, %d",this.slot,version));
+        }
+    }
+
+    public void writeMessageHeader(ByteBuffer buf) throws Exception {
+        if (slot == -1 || version == -1) {
+            throw new RuntimeException("writeMessageHeader: slot/version not initialized");
+        }
+        buf.put(Util.asBytes(0x01,slot,version));
     }
 
     public static Patch readFromFile(String filePath) throws Exception {
@@ -204,7 +221,24 @@ public class Patch {
             buf.put(bbuf.get());
         }
 
+    }
 
+    public ByteBuffer writeMessage() throws Exception {
+        ByteBuffer buf = ByteBuffer.allocateDirect(2048);
+        writeMessageHeader(buf);
+        for (Patch.Sections s : MSG_SECTIONS) {
+            writeSection(buf,s);
+            if (s == Sections.SPatchDescription) {
+                buf.put(Util.asBytes(0x2d,0x00));
+            }
+        }
+        buf.limit(buf.position());
+        int crc = CRC16.crc16(buf.rewind());
+        buf.position(buf.limit());
+        buf.limit(buf.position()+2);
+        //log.info(String.format("%x",crc));
+        Util.putShort(buf,crc);
+        return buf;
     }
 
     public void readSection(ByteBuffer buf, Sections s) throws Exception {
@@ -226,10 +260,7 @@ public class Patch {
     }
 
     public void readSectionMessage(ByteBuffer buf, Sections s) throws Exception {
-        int slot = readMessageHeader(buf);
-        if (this.slot != slot) {
-            throw new IllegalArgumentException(String.format("Slot mismatch: %d, %d: %s",this.slot,slot,s));
-        }
+        readMessageHeader(buf);
         readSection(buf,s);
     }
 

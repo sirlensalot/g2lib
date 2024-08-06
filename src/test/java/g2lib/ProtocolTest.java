@@ -702,14 +702,19 @@ class ProtocolTest {
 
     @Test
     void roundtripMsgFile() throws Exception {
-        Patch p = Patch.readFromMessage(Util.readFile("data/patchdesc1.msg"));
+        ByteBuffer msgfilebuf = Util.readFile("data/patchdesc1.msg");
+        //ed77
+        System.out.printf("r - %x\n",CRC16.crc16(msgfilebuf.rewind(),0,msgfilebuf.limit()-2));//.rewind(),0,check));
+        //Util.dumpBuffer(msgfilebuf.rewind());
+        Patch p = Patch.readFromMessage(msgfilebuf);
         p.readSectionMessage(Util.readFile("data/msg10_cc8f.msg"), Patch.Sections.SCurrentNote);
         p.readSectionMessage(Util.readFile("data/msg11_5f41.msg"), Patch.Sections.STextPad);
-        ByteBuffer buf = ByteBuffer.allocateDirect(2048);
-        for (Patch.Sections s : Patch.FILE_SECTIONS) {
-            p.writeSection(buf,s);
-        }
+        ByteBuffer buf = p.writeMessage();
         buf.limit(buf.position());
+        //Util.dumpBuffer(buf.rewind());
+        System.out.printf("w - %x\n",CRC16.crc16(buf.rewind(),0,buf.limit()-2));//.rewind(),0,check));
+        //Util.dumpBuffer(buf.rewind());
+        // 08 15 1d db c0 00 ed 77
 //        Util.dumpBuffer(buf);
         /*
 fe 01 01 50 01 08 08 57 68 65 65 6c 00 00 01 08   . . . P . . . W h e e l . . . .
