@@ -644,7 +644,8 @@ class ProtocolTest {
                 PatchDescription.White.value(0x01),
                 PatchDescription.MonoPoly.value(0x00),
                 PatchDescription.Variation.value(0x01),
-                PatchDescription.Category.value(0x00)
+                PatchDescription.Category.value(0x00),
+                PatchDescription.Reserved3.value(0x00)
         );
         assertEquals(pd,p.getSection(Patch.Sections.SPatchDescription).values());
         testModules(p,0,1,2);
@@ -677,7 +678,8 @@ class ProtocolTest {
                 PatchDescription.White.value(0x01),
                 PatchDescription.MonoPoly.value(0x00),
                 PatchDescription.Variation.value(0x01),
-                PatchDescription.Category.value(0x00)
+                PatchDescription.Category.value(0x00),
+                PatchDescription.Reserved3.value(0x00)
         );
         assertEquals(pd,p.getSection(Patch.Sections.SPatchDescription).values(),"PatchDescription");
 
@@ -708,8 +710,31 @@ class ProtocolTest {
             p.writeSection(buf,s);
         }
         buf.limit(buf.position());
-        Util.dumpBuffer(buf);
+//        Util.dumpBuffer(buf);
+        /*
+fe 01 01 50 01 08 08 57 68 65 65 6c 00 00 01 08   . . . P . . . W h e e l . . . .
+09 56 65 6c 00 00 00 00 01 08 0a 4b 65 79 62 31   . V e l . . . . . . . K e y b 1
+00 00 01 08 0b 41 66 74 2e 54 63 68 01 08 0c 53   . . . . . A f t . T c h . . . S
+75 73 74 2e 50 64 01 08 0d 43 74 72 6c 2e 50 64   u s t . P d . . . C t r l . P d
+01 08 0e 50 2e 53 74 69 63 6b 01 08 0f 47 2e 57   . . . P . S t i c k . . . G . W
+68 20 32 00 00                                    h . 2 . .
 
+fe 01 01 50 01 08 08 57 68 65 65 6c 00 01 08 09   . . . P . . . W h e e l . . . .
+56 65 6c 00 00 00 01 08 0a 4b 65 79 62 31 00 01   V e l . . . . . . K e y b 1 . .
+08 0b 41 66 74 2e 54 63 68 01 08 0c 53 75 73 74   . . A f t . T c h . . . S u s t
+2e 50 64 01 08 0d 43 74 72 6c 2e 50 64 01 08 0e   . P d . . . C t r l . P d . . .
+50 2e 53 74 69 63 6b 01 08 0f 47 2e 57 68 20 32   P . S t i c k . . . G . W h . 2
+00                                                .
+
+
+01 02 14 01 08 01 43 68 20 31 00 00 00 01 08 03   . . . . . . C h . 1 . . . . . .
+43 68 20 54 77 6f 00 00                           C h . T w o . .
+
+01 02 14 01 08 01 43 68 20 31 00 00 01 08 03 43   . . . . . . C h . 1 . . . . . C
+68 20 54 77 6f 00                                 h . T w o .
+
+
+         */
     }
 
 

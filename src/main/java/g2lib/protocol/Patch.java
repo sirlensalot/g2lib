@@ -192,7 +192,10 @@ public class Patch {
             fv.write(bb);
         }
         ByteBuffer bbuf = bb.toBuffer();
-        System.out.printf("Wrote: %s, len=%x, crc=%x: %s\n",s,bb.limit(),CRC16.crc16(bbuf),Util.dumpBufferString(bbuf));
+//        log.info(String.format("Wrote: %s, len=%x, crc=%x: %s\n",s,bb.limit(),CRC16.crc16(bbuf),Util.dumpBufferString(bbuf)));
+//        if (s == Sections.SMorphLabels || s == Sections.SModuleLabels0) {
+//            Util.dumpAllShifts(bbuf.rewind());
+//        }
 
         buf.put((byte) s.type);
         Util.putShort(buf,bbuf.limit());
@@ -214,10 +217,12 @@ public class Patch {
             }
         }
         FieldValues fvs = s.fields.read(bb);
-        //log.info("read: " + s + ": " + fvs);
-        System.out.printf("Read: %s, len=%x, crc=%x: %s\n",s,bb.limit(),CRC16.crc16(bb.toBuffer()),Util.dumpBufferString(bb.toBuffer()));
+//        log.info(String.format("Read: %s, len=%x, crc=%x: %s\n",s,bb.limit(),CRC16.crc16(bb.toBuffer()),
+//                Util.dumpBufferString(bb.toBuffer())));
+//        if (s == Sections.SMorphLabels || s == Sections.SModuleLabels0) {
+//            Util.dumpAllShifts(bb.toBuffer());
+//        }
         sections.put(s,new Section(s,fvs));
-        ;
     }
 
     public void readSectionMessage(ByteBuffer buf, Sections s) throws Exception {

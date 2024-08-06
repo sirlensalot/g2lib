@@ -58,7 +58,7 @@ public class StringField extends AbstractField implements Field {
             bb.put(8,c & 0xff);
         }
         if (length > 0) {
-            while (i++ < length) {
+            while (i++ <= length) {
                 bb.put(8, 0);
             }
             return;

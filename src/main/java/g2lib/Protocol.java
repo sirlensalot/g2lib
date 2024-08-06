@@ -90,7 +90,8 @@ public class Protocol {
         White(1),
         MonoPoly(2),
         Variation(8),
-        Category(8);
+        Category(8),
+        Reserved3(8);
 
         PatchDescription(int size) { f = new SizedField(this,size); }
         PatchDescription(Fields fs,int c) { f = new SubfieldsField(this,fs,c); }
