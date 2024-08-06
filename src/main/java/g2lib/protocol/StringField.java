@@ -1,11 +1,15 @@
 package g2lib.protocol;
 
 import g2lib.BitBuffer;
+import g2lib.Util;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 public class StringField extends AbstractField implements Field {
 
+    public static final int NO_TERMINATION = -1;
+    private final Logger log = Util.getLogger(StringField.class);
     private final int length;
 
     public <T extends Enum<T>> StringField(Enum<T> e) {
@@ -42,5 +46,25 @@ public class StringField extends AbstractField implements Field {
     @Override
     public Type type() {
         return Type.StringType;
+    }
+
+    public void write(BitBuffer bb, String value) {
+        int i = 0;
+        for (char c : value.toCharArray()) {
+            if (length > 0 && i++ > length) {
+                log.warning(String.format("%s: truncating string for length %d: %s",this,length,value));
+                break;
+            }
+            bb.put(8,c & 0xff);
+        }
+        if (length > 0) {
+            while (i++ < length) {
+                bb.put(8, 0);
+            }
+            return;
+        }
+        if (length != NO_TERMINATION) {
+            bb.put(8, 0);
+        }
     }
 }

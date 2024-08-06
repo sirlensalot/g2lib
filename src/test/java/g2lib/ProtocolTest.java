@@ -203,7 +203,7 @@ class ProtocolTest {
         }
     }
 
-    private void testModParams0(Patch p, int vc, int remaining) {
+    private void testModParams0(Patch p, int vc) {
 
         FieldValues modParams = p.getSection(Patch.Sections.SModuleParams0).values();
 
@@ -234,7 +234,7 @@ class ProtocolTest {
 
     }
 
-    private void testModParams1(Patch p, int vc, int remaining) {
+    private void testModParams1(Patch p, int vc) {
 
         FieldValues modParams = p.getSection(Patch.Sections.SModuleParams1).values();
 
@@ -304,7 +304,7 @@ class ProtocolTest {
         System.out.println();
     }
 
-    private int testPatchSettings(Patch p, int vce, int remaining) {
+    private int testPatchSettings(Patch p, int vce) {
         Patch.Section s = p.getSection(Patch.Sections.SPatchParams);
         assertEquals(2, Patch.Sections.SPatchParams.location,"location"); //patch parameters
 
@@ -539,130 +539,6 @@ class ProtocolTest {
         assertSubfields(module, 0, Module_.Modes);
     }
 
-
-    private void testEndPadding(BitBuffer bb, int remaining) {
-        assertEquals(remaining,bb.getBitsRemaining(),"remaining");
-        if (remaining > 0) {
-            assertEquals(0, bb.get(remaining), "end padding");
-            assertEquals(0, bb.getBitsRemaining(), "no bits remaining");
-        }
-    }
-
-
-
-    @Test
-    void patchDesc0() throws Exception {
-
-        ByteBuffer buf = Util.readFile("data/patchdesc0.msg");
-
-        assertEquals(0x01,buf.get()); // cmd
-        assertEquals(0x08,buf.get()); // slot 0
-        assertEquals(0x00,buf.get()); // patch version
-        BitBuffer bb;
-
-        bb = section(0x21,buf);
-        PatchDescription.FIELDS.read(bb);
-
-
-        assertEquals(0x2d,buf.get(),"USB extra 1");
-        assertEquals(0x00,buf.get(), "USB extra 2");
-
-        bb = section(0x4a,buf);
-        assertEquals(1,bb.get(2),"location");
-        FieldValues modl = ModuleList.FIELDS.read(bb);
-        //assertFieldEquals(modl,1,ModuleList.Location);
-
-        bb = section(0x4a,buf);
-        assertEquals(0,bb.get(2),"location");
-        modl = ModuleList.FIELDS.read(bb);
-        //assertFieldEquals(modl,0,ModuleList.Location);
-
-        //52 should be next, CABLE_LIST
-        bb = section(0x52,buf);
-        assertEquals(1,bb.get(2),"location");
-        CableList.FIELDS.read(bb);
-
-        bb = section(0x52,buf);
-        assertEquals(0,bb.get(2),"location");
-        CableList.FIELDS.read(bb);
-
-        bb = section(0x4d,buf); //param list
-        assertEquals(2,bb.get(2),"location"); //patch parameters
-        PatchParams.FIELDS.read(bb);
-
-        bb = section(0x4d,buf); //param list
-        assertEquals(1,bb.get(2),"location"); //loc1 parameters
-        ModuleParams.FIELDS.read(bb);
-
-        bb = section(0x4d,buf); //param list
-        assertEquals(0,bb.get(2),"location"); //loc0 parameters
-        ModuleParams.FIELDS.read(bb);
-
-        bb = section(0x65,buf); //morph parameters
-        MorphParameters.FIELDS.read(bb);
-
-        bb = section(0x62,buf); //knob assignments
-        KnobAssignments.FIELDS.read(bb);
-
-        bb = section(0x60,buf); //Control Assignments
-        ControlAssignments.FIELDS.read(bb);
-
-        bb = section(0x5a,buf); //Module Names
-        assertEquals(0x01,bb.get(2),"Location");
-        ModuleNames.FIELDS.read(bb);
-
-        bb = section(0x5a,buf); //Module Names
-        assertEquals(0x00,bb.get(2),"Location");
-        ModuleNames.FIELDS.read(bb);
-
-        bb = section(0x5b,buf); //Labels
-        assertEquals(0x02,bb.get(2),"Location"); // settings/morph labels
-        MorphLabels.FIELDS.read(bb);
-
-        bb = section(0x5b,buf); //Labels
-        assertEquals(0x01,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules");
-
-        bb = section(0x5b,buf); //Labels
-        assertEquals(0x00,bb.get(2),"Location"); // module labels
-        assertEquals(0x00,bb.get(2),"NumModules");
-
-        assertEquals(0x17da,Util.getShort(buf),"CRC");
-        assertFalse(buf.hasRemaining(),"Buf done");
-
-    }
-
-
-    private void testModuleLabels(ByteBuffer buf) {
-        BitBuffer bb = section(0x5b,buf); //Labels
-        assertEquals(0x01,bb.get(2),"Location");
-        FieldValues mlss = ModuleLabels.FIELDS.read(bb);
-        assertFieldEquals(mlss,0x00,ModuleLabels.ModuleCount);
-        testEndPadding(bb,6);
-
-        bb = section(0x5b, buf); //Labels
-        assertEquals(0x00,bb.get(2),"Location");
-        mlss = ModuleLabels.FIELDS.read(bb);
-        assertFieldEquals(mlss,0x01,ModuleLabels.ModuleCount);
-        FieldValues mls = assertSubfields(mlss,1,ModuleLabels.ModLabels).removeFirst();
-        assertFieldEquals(mls,0x02,ModuleLabel.ModuleIndex);
-        assertFieldEquals(mls,0x14,ModuleLabel.ModLabelLen);
-        List<FieldValues> ls = assertSubfields(mls, 2, ModuleLabel.Labels);
-
-        FieldValues l = ls.removeFirst();
-        assertFieldEquals(l,0x01,ParamLabel.IsString);
-        assertFieldEquals(l,0x08,ParamLabel.ParamLen);
-        assertFieldEquals(l,0x01,ParamLabel.ParamIndex);
-        assertFieldEquals(l,"Ch 1",ParamLabel.Label);
-
-        l = ls.removeFirst();
-        assertFieldEquals(l,0x01,ParamLabel.IsString);
-        assertFieldEquals(l,0x08,ParamLabel.ParamLen);
-        assertFieldEquals(l,0x03,ParamLabel.ParamIndex);
-        assertFieldEquals(l,"Ch Two",ParamLabel.Label);
-
-        testEndPadding(bb,6);
-    }
     private void testModuleLabels(Patch p) {
         FieldValues mlss = p.getSection(Patch.Sections.SModuleLabels1).values();
         assertFieldEquals(mlss,0x00,ModuleLabels.ModuleCount);
@@ -688,6 +564,64 @@ class ProtocolTest {
     }
 
 
+    private void testTextPad(Patch p) {
+        FieldValues tp = p.getSection(Patch.Sections.STextPad).values();
+        assertFieldEquals(tp,"Writing notes ...",TextPad.Text);
+    }
+
+    private void testCurrentNote(Patch p) {
+        FieldValues cns = p.getSection(Patch.Sections.SCurrentNote).values();
+        /*
+        80 00 01 60 00 01 00 00 08 00 00 40 00 02 00 00   . . . ` . . . . . . . @ . . . .
+        10 00 00
+        */
+        assertFieldEquals(cns,0x40,CurrentNote.Note);
+        assertFieldEquals(cns,0x00,CurrentNote.Attack);
+        assertFieldEquals(cns,0x00,CurrentNote.Release);
+        assertFieldEquals(cns,0x05,CurrentNote.NoteCount); //note that this stores actual count - 1
+        List<FieldValues> ns = assertSubfields(cns, 6, CurrentNote.Notes);
+        for (int i = 0; i < 6; i++) {
+            FieldValues n = ns.removeFirst();
+            assertFieldEquals(n,0x40,NoteData.Note);
+            assertFieldEquals(n,0x00,NoteData.Attack);
+            assertFieldEquals(n,0x00,NoteData.Release);
+        }
+    }
+
+
+    @Test
+    void readTextPadMessage() throws Exception {
+        ByteBuffer buf = Util.readFile("data/msg11_5f41.msg");
+        assertEquals(0x01,buf.get()); // cmd
+        assertEquals(0x09,buf.get()); // slot 0
+        assertEquals(0x00,buf.get()); // patch version
+        Patch p = new Patch();
+        p.readSection(buf, Patch.Sections.STextPad);
+        testTextPad(p);
+
+    }
+
+    @Test
+    void readCurrentNoteMessage() throws Exception {
+        ByteBuffer buf = Util.readFile("data/msg10_cc8f.msg");
+        assertEquals(0x01,buf.get()); // cmd
+        assertEquals(0x09,buf.get()); // slot 0
+        assertEquals(0x00,buf.get()); // patch version
+        Patch p = new Patch();
+        p.readSection(buf, Patch.Sections.SCurrentNote);
+        testCurrentNote(p);
+    }
+
+
+    @Test
+    void patchDesc0() throws Exception {
+
+        ByteBuffer buf = Util.readFile("data/patchdesc0.msg");
+
+        Patch.readFromMessage(buf);
+
+    }
+
     @Test
     void patchFromMessage() throws Exception {
         ByteBuffer buf = Util.readFile("data/patchdesc1.msg");
@@ -696,8 +630,8 @@ class ProtocolTest {
 
 
         FieldValues pd = PatchDescription.FIELDS.values(
-                PatchDescription.Reserved.value(Data8.asSubfield(1, 0xfc, 0, 0, 1, 0, 0)),
-                PatchDescription.Reserved2.value(0x04),
+                PatchDescription.Reserved.value(Data8.asSubfield(1, 0xfc, 0, 0, 1, 0, 0)), //USB
+                PatchDescription.Reserved2.value(0x04), //USB
                 PatchDescription.Voices.value(0x05),
                 PatchDescription.Height.value(374),
                 PatchDescription.Unk2.value(0x01),
@@ -715,9 +649,9 @@ class ProtocolTest {
         assertEquals(pd,p.getSection(Patch.Sections.SPatchDescription).values());
         testModules(p,0,1,2);
         testCableLists(p,0,1,2,0,1);
-        int vc = testPatchSettings(p,10,3);
-        testModParams1(p, vc, 0);
-        testModParams0(p, vc, 7);
+        int vc = testPatchSettings(p,10);
+        testModParams1(p, vc);
+        testModParams0(p, vc);
         testMorphParams(p, vc);
         testKnobAssignments(p);
         testControlAssignments(p);
@@ -726,11 +660,11 @@ class ProtocolTest {
         testModuleLabels(p);
     }
     @Test
-    public void readPatchPatch() throws Exception {
+    public void patchFromFile() throws Exception {
         Patch p = Patch.readFromFile("data/simplesynth001-20240802.pch2");
         FieldValues pd = PatchDescription.FIELDS.values(
-                PatchDescription.Reserved.value(Data8.asSubfield(0, 0, 0, 0, 0, 0, 0)), //!USB
-                PatchDescription.Reserved2.value(0x00), //!USB
+                PatchDescription.Reserved.value(Data8.asSubfield(0, 0, 0, 0, 0, 0, 0)), //File
+                PatchDescription.Reserved2.value(0x00), //File
                 PatchDescription.Voices.value(0x05),
                 PatchDescription.Height.value(374),
                 PatchDescription.Unk2.value(0x01),
@@ -749,36 +683,33 @@ class ProtocolTest {
 
         testModules(p,0,2,1);
 
-        FieldValues cns = p.getSection(Patch.Sections.SCurrentNote).values();
-        /*
-        80 00 01 60 00 01 00 00 08 00 00 40 00 02 00 00   . . . ` . . . . . . . @ . . . .
-        10 00 00
-        */
-        assertFieldEquals(cns,0x40,CurrentNote.Note);
-        assertFieldEquals(cns,0x00,CurrentNote.Attack);
-        assertFieldEquals(cns,0x00,CurrentNote.Release);
-        assertFieldEquals(cns,0x05,CurrentNote.NoteCount); //note that this stores actual count - 1
-        List<FieldValues> ns = assertSubfields(cns, 6, CurrentNote.Notes);
-        for (int i = 0; i < 6; i++) {
-            FieldValues n = ns.removeFirst();
-            assertFieldEquals(n,0x40,NoteData.Note);
-            assertFieldEquals(n,0x00,NoteData.Attack);
-            assertFieldEquals(n,0x00,NoteData.Release);
-        }
+        testCurrentNote(p);
 
         testCableLists(p,2,1,0,1,0); //LOL reversed in patch!!!
-        int vc = testPatchSettings(p,9,4);
-        testModParams1(p,vc, 5);
-        testModParams0(p,vc, 4);
+        int vc = testPatchSettings(p,9);
+        testModParams1(p,vc);
+        testModParams0(p,vc);
         testMorphParams(p,vc);
         testKnobAssignments(p);
         testControlAssignments(p);
         testMorphLabels(p);
         testModuleLabels(p);
         testModuleNames(p);
+        testTextPad(p);
+    }
 
-        FieldValues tp = p.getSection(Patch.Sections.STextPad).values();
-        assertFieldEquals(tp,"Writing notes ...",TextPad.Text);
+    @Test
+    void roundtripMsgFile() throws Exception {
+        Patch p = Patch.readFromMessage(Util.readFile("data/patchdesc1.msg"));
+        p.readSectionMessage(Util.readFile("data/msg10_cc8f.msg"), Patch.Sections.SCurrentNote);
+        p.readSectionMessage(Util.readFile("data/msg11_5f41.msg"), Patch.Sections.STextPad);
+        ByteBuffer buf = ByteBuffer.allocateDirect(2048);
+        for (Patch.Sections s : Patch.FILE_SECTIONS) {
+            p.writeSection(buf,s);
+        }
+        buf.limit(buf.position());
+        Util.dumpBuffer(buf);
+
     }
 
 

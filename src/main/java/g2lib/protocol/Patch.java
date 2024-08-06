@@ -2,12 +2,10 @@ package g2lib.protocol;
 
 import g2lib.BitBuffer;
 import g2lib.CRC16;
-import g2lib.Protocol;
 import g2lib.Util;
 
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
@@ -123,10 +121,8 @@ public class Patch {
     }
 
     public static Patch readFromMessage(ByteBuffer buf) throws Exception {
-        expectWarn(buf,0x01,"Message","Cmd");
         Patch patch = new Patch();
-        patch.slot = buf.get();
-        expectWarn(buf,0x00,"Message","PatchVersion");
+        patch.slot = readMessageHeader(buf);
 
         for (Sections ss : MSG_SECTIONS) {
             patch.readSection(buf,ss);
@@ -135,10 +131,15 @@ public class Patch {
                 expectWarn(buf,0x00,"Message","USB extra 2");
             }
         }
-
         return patch;
     }
 
+    public static int readMessageHeader(ByteBuffer buf) throws Exception {
+        expectWarn(buf,0x01,"Message","Cmd");
+        int slot = buf.get();
+        expectWarn(buf,0x00,"Message","PatchVersion");
+        return slot;
+    }
 
     public static Patch readFromFile(String filePath) throws Exception {
         ByteBuffer fileBuffer = Util.readFile(filePath);
@@ -168,9 +169,44 @@ public class Patch {
         return patch;
     }
 
-    private void readSection(ByteBuffer buf, Sections s) throws Exception {
-        BitBuffer bb = Protocol.section(s.type,buf);
-        log.info(s + ": length " + bb.limit());
+
+    public static BitBuffer sliceSection(int type, ByteBuffer buf) {
+        int t = buf.get();
+        if (t != type) {
+            throw new IllegalArgumentException(String.format("Section incorrect %x %x",type,t));
+        }
+        return BitBuffer.sliceAhead(buf,Util.getShort(buf));
+    }
+
+    public void writeSection(ByteBuffer buf, Sections s) throws  Exception {
+        Section ss = getSection(s);
+        if (ss == null) {
+            throw new IllegalArgumentException("No section in patch: " + s);
+        }
+        BitBuffer bb = new BitBuffer(1024);
+        if (s.location != null) {
+            bb.put(2,s.location);
+        }
+        FieldValues fvs = ss.values;
+        for (FieldValue fv : fvs.values) {
+            fv.write(bb);
+        }
+        ByteBuffer bbuf = bb.toBuffer();
+        System.out.printf("Wrote: %s, len=%x, crc=%x: %s\n",s,bb.limit(),CRC16.crc16(bbuf),Util.dumpBufferString(bbuf));
+
+        buf.put((byte) s.type);
+        Util.putShort(buf,bbuf.limit());
+        bbuf.rewind();
+        while(bbuf.hasRemaining()) {
+            buf.put(bbuf.get());
+        }
+
+
+    }
+
+    public void readSection(ByteBuffer buf, Sections s) throws Exception {
+        BitBuffer bb = sliceSection(s.type,buf);
+        //log.info(s + ": length " + bb.limit());
         if (s.location != null) {
             Integer loc = bb.get(2);
             if (!loc.equals(s.location)) {
@@ -178,8 +214,18 @@ public class Patch {
             }
         }
         FieldValues fvs = s.fields.read(bb);
-        log.info("read: " + s + ": " + fvs);
+        //log.info("read: " + s + ": " + fvs);
+        System.out.printf("Read: %s, len=%x, crc=%x: %s\n",s,bb.limit(),CRC16.crc16(bb.toBuffer()),Util.dumpBufferString(bb.toBuffer()));
         sections.put(s,new Section(s,fvs));
+        ;
+    }
+
+    public void readSectionMessage(ByteBuffer buf, Sections s) throws Exception {
+        int slot = readMessageHeader(buf);
+        if (this.slot != slot) {
+            throw new IllegalArgumentException(String.format("Slot mismatch: %d, %d: %s",this.slot,slot,s));
+        }
+        readSection(buf,s);
     }
 
     public Section getSection(Sections key) {

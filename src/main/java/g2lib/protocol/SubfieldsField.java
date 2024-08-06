@@ -75,6 +75,16 @@ public class SubfieldsField extends AbstractField implements Field {
         values.getFirst().add(new SubfieldsValue(this, vs));
     }
 
+
+    public void write(BitBuffer bb, List<FieldValues> value) throws Exception {
+        for (FieldValues fvs : value) {
+            for (FieldValue fv : fvs.values) {
+                fv.write(bb);
+            }
+        }
+    }
+
+
     @Override
     public Type type() {
         return Type.SubfieldType;

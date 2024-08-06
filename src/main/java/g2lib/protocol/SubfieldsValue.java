@@ -1,8 +1,10 @@
 package g2lib.protocol;
 
+import g2lib.BitBuffer;
+
 import java.util.List;
 
-public record SubfieldsValue(Field field, List<FieldValues> value) implements FieldValue {
+public record SubfieldsValue(SubfieldsField field, List<FieldValues> value) implements FieldValue {
 
     @Override
     public String toString() {
@@ -13,5 +15,10 @@ public record SubfieldsValue(Field field, List<FieldValues> value) implements Fi
             return ((SubfieldsValue) f).value();
         }
         throw new UnsupportedOperationException("Not SubfieldsValue: " + f);
+    }
+
+    @Override
+    public void write(BitBuffer bb) throws Exception {
+        field.write(bb,value);
     }
 }

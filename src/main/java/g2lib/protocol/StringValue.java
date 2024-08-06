@@ -1,6 +1,8 @@
 package g2lib.protocol;
 
-public record StringValue(Field field, String value) implements FieldValue {
+import g2lib.BitBuffer;
+
+public record StringValue(StringField field, String value) implements FieldValue {
 
     @Override
     public String toString() {
@@ -14,4 +16,8 @@ public record StringValue(Field field, String value) implements FieldValue {
         throw new UnsupportedOperationException("Not StringValue: " + f);
     }
 
+    @Override
+    public void write(BitBuffer bb) throws Exception {
+        field.write(bb,value);
+    }
 }

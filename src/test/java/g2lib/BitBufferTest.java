@@ -48,6 +48,12 @@ class BitBufferTest {
         assertEquals(3991, bb.get(13));
         assertEquals(7, bb.get(5));
 
+        buffer.rewind();
+        int s = Util.getShort(buffer);
+        ByteBuffer sb = ByteBuffer.allocate(2);
+        Util.putShort(sb,s);
+        Util.dumpBuffer(sb);
+
         BitBuffer bb2 = new BitBuffer(4);
         bb2.put(6, 17);
         bb2.put(13, 3991);
@@ -57,6 +63,8 @@ class BitBufferTest {
         byte[] data2 = new byte[buffer2.limit()];
         buffer2.get(data2);
         assertArrayEquals(data, data2);
+
+
     }
 
 }

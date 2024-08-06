@@ -61,6 +61,11 @@ public class Util {
         return addb(buffer.get(),buffer.get());
     }
 
+    public static void putShort(ByteBuffer buffer, int value) {
+        buffer.put((byte) ((value >> 8) & 0xff));
+        buffer.put((byte) (value & 0xff));
+    }
+
     public static byte[] asBytes(int... vals) {
         byte[] bytes = new byte[vals.length];
         for (int i = 0; i < vals.length; i++) {

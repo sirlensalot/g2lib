@@ -8,14 +8,6 @@ import java.util.List;
 
 public class Protocol {
 
-    public static BitBuffer section(int type, ByteBuffer buf) {
-        int t = buf.get();
-        if (t != type) {
-            throw new IllegalArgumentException(String.format("Section incorrect %x %x",type,t));
-        }
-        return BitBuffer.sliceAhead(buf,Util.getShort(buf));
-    }
-
     public enum CableList implements FieldEnum {
         Reserved(12),
         CableCount(10),
@@ -488,7 +480,7 @@ public class Protocol {
 
     public enum TextPad implements FieldEnum {
         Text;
-        private final Field f = new StringField(this);
+        private final Field f = new StringField(this,StringField.NO_TERMINATION);
         public Field field() { return f; }
         public static final Fields FIELDS = new Fields(TextPad.class,values());
     }

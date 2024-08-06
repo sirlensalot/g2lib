@@ -5,7 +5,7 @@ import g2lib.BitBuffer;
 import java.util.List;
 
 public class SizedField extends AbstractField implements Field {
-    private final int size;
+    public final int size;
 
     public <T extends Enum<T>> SizedField(Enum<T> e, int size) {
         super(e);
