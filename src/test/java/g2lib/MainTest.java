@@ -25,8 +25,8 @@ class MainTest {
 
         assertEquals(0x1bd6, Util.addb((byte) 0x1b, (byte) 0xd6));
 
-        System.out.println(Util.asBinary((0xff >> 5) << 2));
-        System.out.printf("%x\n", Integer.MIN_VALUE);
+        assertArrayEquals(Util.asBytes(0,1,2,3,4,5),
+                Util.concat(Util.asBytes(0,1,2),Util.asBytes(3,4),Util.asBytes(5)));
     }
 
 }

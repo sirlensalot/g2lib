@@ -3,6 +3,7 @@ package g2lib;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Logger;
 
@@ -73,6 +74,22 @@ public class Util {
             bytes[i] = (byte) vals[i];
         }
         return bytes;
+    }
+
+    public static byte[] concat(byte[]... byteArrays) {
+        if (byteArrays.length == 0) { return new byte[0]; }
+        int len = 0;
+        for (byte[] a : byteArrays) {
+            len += a.length;
+        }
+        byte[] r = new byte[len];
+        int i = 0;
+        for (byte[] a : byteArrays) {
+            for (byte b : a) {
+                r[i++] = b;
+            }
+        }
+        return r;
     }
 
     public static String asBinary(int i) {

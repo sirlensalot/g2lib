@@ -55,8 +55,21 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        final Usb usb = Usb.initialize();
-
+        Usb usb;
+        int retry = 0;
+        while (true) {
+            try {
+                usb = Usb.initialize();
+                break;
+            } catch (Exception e) {
+                if (retry++ < 10) {
+                    log.info("Failed to acquire USB device, retrying...");
+                    Thread.sleep(2000);
+                } else {
+                    throw e;
+                }
+            }
+        }
 
         UsbReadThread readThread = new UsbReadThread(usb);
         readThread.thread.start();
@@ -64,81 +77,70 @@ public class Main {
 
         // init message
         usb.sendBulk("Init", Util.asBytes(0x80)); // CMD_INIT
-        //usb.readExtended();  // cmd == 80 is success
+        //extended: 80 0a 03 00 -- 80/hello machine
 
         // patch version (?)
-        usb.sendCmdRequest("Patch version"
+        usb.sendSystemCmd("Patch version"
                 ,0x35 // Q_VERSION_CNT
                 ,0x04 // perf version??
             );
-        //usb.readInterrupt(2000); // 82 01 0c 40 36 04 00 , "perf version" [04] 00
+        //embedded: 82 01 0c 40 36 04 00 , "perf version" [04] 00
 
         //stop comm 0x01
-        usb.sendCmdRequest("Stop Comm"
+        usb.sendSystemCmd("Stop Comm"
                 ,0x7d // S_START_STOP_COM
                 ,0x01 // stop
                 );
-        //usb.readInterrupt(2000); //0c 00 7f: OK  x
+        //embedded: 62 01 0c 00 7f -- 62 01 (stop message/OK)
 
         //synth settings
-        usb.sendCmdRequest("Synth settings"
+        usb.sendSystemCmd("Synth settings"
                 ,0x02 // Q_SYNTH_SETTINGS
         );
-        //usb.readExtended(); // 01 0c 00 03 -> 03 is S_SYNTH_SETTINGS  -- 1
+        //extended: 01 0c 00 03 -- synth settings [03]
 
         //unknown 1
-        usb.sendCmdRequest("unknown 1"
+        usb.sendSystemCmd("unknown 1"
                 ,0x81 // M_UNKNOWN_1
         );
-        //usb.readExtended(); // 01 0c 00 80 -> unknown 1
+        //extended: 01 0c 00 80 -- 80/"unknown 1" (slot hello?)
 
-        usb.sendCmdRequest("perf settings"
+        usb.sendSystemCmd("perf settings"
                 ,0x10 // Q_PERF_SETTINGS
         );
-        //usb.readExtended(); // 01 0c 00 29 , 29 => C_PERF_NAME, then chunks in TG2FilePerformance.Read
+        //extended: 01 0c 00 29 -- perf settings [29 "perf name"]
+        //  then chunks in TG2FilePerformance.Read
 
-        usb.sendCmdRequest("unknown 2"
-            ,0x59 // M_UNKNOWN_2
+        usb.sendSystemCmd("unknown 2"
+                ,0x59 // M_UNKNOWN_2
         );
-        //usb.readInterrupt(2000); // 1e embedded message (unknown 2)
+        //embedded: 72 01 0c 00 1e -- "unknown 2" [1e]
 
-        usb.sendCmdRequest("slot 1 version"
-            ,0x35 // Q_VERSION_CNT
+        usb.sendSystemCmd("slot 1 version"
+                ,0x35 // Q_VERSION_CNT
                 ,1 // slot index
         );
-        //usb.readInterrupt(2000); // 82 01 0c 40 36 00 00, slot 0 version -> 00
-        // 00 08 01 29 00 3c 99 3c slot 1 version
+        //embedded: 82 01 0c 40 36 01 -- slot version
 
-        usb.sendBulk("slot 1 patch", Util.asBytes(
-                0x01
-                ,0x20 + 0x08 + 1 // CMD_REQ + CMD_SLOT + slot index
-                ,0 // patch version, 0 from above
-                ,0x3c // Q_PATCH
-                ));
+        usb.sendSlotCmd(1,0,"slot 1 patch",
+                0x3c // Q_PATCH
+        );
+        //extended: 01 09 00 21 -- patch description, slot 1
 
+        usb.sendSlotCmd(1,0,"slot 1 name",
+                0x28 // Q_PATCH_NAME
+        );
+        //extended: 01 09 00 27 -- patch name, slot 1
 
-        usb.sendBulk("slot 1 name",Util.asBytes(
-                0x01
-                ,0x20 + 0x08 + 1 // CMD_REQ + CMD_SLOT + slot index
-                ,0 // patch version, 0 from above
-                ,0x28 // Q_PATCH_NAME
-        ));
+        usb.sendSlotCmd(1,0,"slot 1 note",
+                0x68 // Q_CURRENT_NOTE
+        );
+        //extended: 01 09 00 69 -- cable list, slot 1
 
-        usb.sendBulk("slot 1 curnote",Util.asBytes(
-                0x01
-                ,0x20 + 0x08 + 1 // CMD_REQ + CMD_SLOT + slot index
-                ,0 // patch version, 0 from above
-                ,0x68 // Q_CURRENT_NOTE
-        ));
-
-
-
-        usb.sendBulk("slot 1 text",Util.asBytes(
-                0x01
-                ,0x20 + 0x08 + 1 // CMD_REQ + CMD_SLOT + slot index
-                ,0 // patch version, 0 from above
-                ,0x6e //Q_PATCH_TEXT
-        ));
+        usb.sendSlotCmd(1,0,"slot 1 text",
+                0x6e //Q_PATCH_TEXT
+        );
+        //extended: 01 09 00 6f -- textpad, slot 1
 
         int i = 0;
         while (readThread.recd.get() < 12) {

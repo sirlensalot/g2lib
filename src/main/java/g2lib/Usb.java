@@ -149,6 +149,7 @@ public class Usb {
          */
     }
 
+    @SuppressWarnings("unused")
     public UsbMessage readInterruptRetry() {
         UsbMessage r = new UsbMessage(-1,false,-1,null);
         for (int i = 0; i < 5; i++) {
@@ -223,15 +224,20 @@ public class Usb {
         }
     }
 
-    public int sendCmdRequest(String msg, int... cdata) {
-        byte[] data = new byte[cdata.length + 3];
-        data[0] = (byte) 0x01;
-        data[1] = (byte) (0x20 + 0x0c); // CMD_REQ + CMD_SYS
-        data[2] = (byte) 0x41;
-        for (int i = 0; i < cdata.length; i++) {
-            data[i + 3] = (byte) cdata[i];
-        }
-        return sendBulk(msg, data);
+    public int sendSystemCmd(String msg, int... cdata) {
+        return sendBulk(msg,Util.concat(Util.asBytes(
+                0x01,
+                0x20 + 0x0c,// CMD_REQ + CMD_SYS
+                0x41
+                ),Util.asBytes(cdata)));
+    }
+
+    public int sendSlotCmd(int slot,int version,String msg, int... cdata) {
+        return sendBulk(msg,Util.concat(Util.asBytes(
+                0x01,
+                0x20 + 0x08 + slot, // CMD_REQ + CMD_SLOT + slot index
+                version
+                ),Util.asBytes(cdata)));
     }
 
 
@@ -240,6 +246,7 @@ public class Usb {
      *
      * @param device The device to dump.
      */
+    @SuppressWarnings("unused")
     public static void dumpDevice(final Device device) {
         // Dump device address and bus number
         final int address = LibUsb.getDeviceAddress(device);
