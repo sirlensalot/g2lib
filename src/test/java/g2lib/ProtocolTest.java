@@ -13,6 +13,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ProtocolTest {
 
+    public static final String PATCH_FILE = "data/simplesynth001-20240802.pch2";
+    public static final String PATCHMSG_1 = "data/patchdesc1.msg";
+    public static final String CURRENT_NOTE_MSG = "data/msg10_cc8f.msg";
+    public static final String TEXTPAD_MSG = "data/msg11_5f41.msg";
+
     public static int assertFieldEquals(FieldValues values, int expected, FieldEnum field) {
         int actual = assertValue(values, field);
         assertEquals(String.format("%#02x",expected),
@@ -587,7 +592,7 @@ class ProtocolTest {
 
     @Test
     void readTextPadMessage() throws Exception {
-        ByteBuffer buf = Util.readFile("data/msg11_5f41.msg");
+        ByteBuffer buf = Util.readFile(TEXTPAD_MSG);
         assertEquals(0x01,buf.get()); // cmd
         assertEquals(0x09,buf.get()); // slot 0
         assertEquals(0x00,buf.get()); // patch version
@@ -599,7 +604,7 @@ class ProtocolTest {
 
     @Test
     void readCurrentNoteMessage() throws Exception {
-        ByteBuffer buf = Util.readFile("data/msg10_cc8f.msg");
+        ByteBuffer buf = Util.readFile(CURRENT_NOTE_MSG);
         assertEquals(0x01,buf.get()); // cmd
         assertEquals(0x09,buf.get()); // slot 0
         assertEquals(0x00,buf.get()); // patch version
@@ -620,7 +625,7 @@ class ProtocolTest {
 
     @Test
     void patchFromMessage() throws Exception {
-        ByteBuffer buf = Util.readFile("data/patchdesc1.msg");
+        ByteBuffer buf = Util.readFile(PATCHMSG_1);
         Patch p = Patch.readFromMessage(buf);
         assertEquals(9,p.slot);
 
@@ -658,7 +663,7 @@ class ProtocolTest {
     }
     @Test
     public void patchFromFile() throws Exception {
-        Patch p = Patch.readFromFile("data/simplesynth001-20240802.pch2");
+        Patch p = Patch.readFromFile(PATCH_FILE);
         FieldValues pd = PatchDescription.FIELDS.values(
                 PatchDescription.Reserved.value(Data8.asSubfield(0, 0, 0, 0, 0, 0, 0)), //File
                 PatchDescription.Reserved2.value(0x00), //File
@@ -698,20 +703,26 @@ class ProtocolTest {
 
     @Test
     void roundtripMsgFile() throws Exception {
-        ByteBuffer msgfile = Util.readFile("data/patchdesc1.msg");
+        ByteBuffer msgfile = Util.readFile(PATCHMSG_1);
         Patch p = Patch.readFromMessage(msgfile);
-        p.readSectionMessage(Util.readFile("data/msg10_cc8f.msg"), Patch.Sections.SCurrentNote);
-        p.readSectionMessage(Util.readFile("data/msg11_5f41.msg"), Patch.Sections.STextPad);
+        p.readSectionMessage(Util.readFile(CURRENT_NOTE_MSG), Patch.Sections.SCurrentNote);
+        p.readSectionMessage(Util.readFile(TEXTPAD_MSG), Patch.Sections.STextPad);
         ByteBuffer msgbuf = p.writeMessage();
         assertEquals(msgfile.rewind(),msgbuf.rewind());
+
+        Patch.Section pd = p.getSection(Patch.Sections.SPatchDescription);
+        pd.values().update(PatchDescription.Reserved.value(Data8.asSubfield(0, 0, 0, 0, 0, 0, 0)));
+        pd.values().update(PatchDescription.Reserved2.value(0x00));
+        //this file is made by g2lib as a manual test, so this is a regression
+        assertEquals(Util.readFile("data/simplesynth001-g2lib.pch2").rewind(),p.writeFile().rewind());
+
     }
 
     @Test
     void roundtripPatchFile() throws Exception {
-        String patchFile = "data/simplesynth001-20240802.pch2";
-        Patch p = Patch.readFromFile(patchFile);
+        Patch p = Patch.readFromFile(PATCH_FILE);
         ByteBuffer buf = p.writeFile();
-        ByteBuffer filebuf = Util.readFile(patchFile);
+        ByteBuffer filebuf = Util.readFile(PATCH_FILE);
         assertEquals(filebuf.rewind(),buf.rewind());
     }
 
