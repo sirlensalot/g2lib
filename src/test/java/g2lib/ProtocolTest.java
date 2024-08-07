@@ -1,6 +1,7 @@
 package g2lib;
 
 import g2lib.protocol.*;
+import g2lib.state.Patch;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
@@ -14,9 +15,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class ProtocolTest {
 
     public static final String PATCH_FILE = "data/simplesynth001-20240802.pch2";
-    public static final String PATCHMSG_1 = "data/patchdesc1.msg";
-    public static final String CURRENT_NOTE_MSG = "data/msg10_cc8f.msg";
-    public static final String TEXTPAD_MSG = "data/msg11_5f41.msg";
+    public static final String PATCHMSG_1 = "data/msg_Slot1Patch_ed77.msg";
+    public static final String PATCHMSG_0 = "data/msg_Slot0Patch_3dc3.msg";
+    public static final String CURRENT_NOTE_MSG = "data/msg_Slot1Note_cc8f.msg";
+    public static final String TEXTPAD_MSG = "data/msg_Slot1TextPad_5f41.msg";
 
     public static int assertFieldEquals(FieldValues values, int expected, FieldEnum field) {
         int actual = assertValue(values, field);
@@ -617,7 +619,7 @@ class ProtocolTest {
     @Test
     void patchDesc0() throws Exception {
 
-        ByteBuffer buf = Util.readFile("data/patchdesc0.msg");
+        ByteBuffer buf = Util.readFile(PATCHMSG_0);
 
         Patch.readFromMessage(buf);
 

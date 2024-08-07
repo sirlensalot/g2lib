@@ -4,19 +4,36 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
 public class Util {
 
     static final Logger log = getLogger(Util.class);
 
+    static class DualConsoleHandler extends StreamHandler {
+
+        private final ConsoleHandler stderrHandler = new ConsoleHandler();
+
+        public DualConsoleHandler() {
+            super(System.out, new SimpleFormatter());
+        }
+
+        @Override
+        public void publish(LogRecord record) {
+            if (record.getLevel().intValue() <= Level.INFO.intValue()) {
+                super.publish(record);
+                super.flush();
+            } else {
+                stderrHandler.publish(record);
+                stderrHandler.flush();
+            }
+        }
+    }
+
     public static final Logger getLogger(Class<?> c) {
         Logger l = Logger.getLogger(c.getName());
         l.setUseParentHandlers(false);
-        l.addHandler(new ConsoleHandler() {
-            {setOutputStream(System.out);}
-        });
+        l.addHandler(new DualConsoleHandler());
         return l;
     }
 

@@ -1,8 +1,11 @@
-package g2lib.protocol;
+package g2lib.state;
 
 import g2lib.BitBuffer;
 import g2lib.CRC16;
 import g2lib.Util;
+import g2lib.protocol.FieldValue;
+import g2lib.protocol.FieldValues;
+import g2lib.protocol.Fields;
 
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
