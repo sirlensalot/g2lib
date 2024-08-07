@@ -38,8 +38,8 @@ public class Main {
         //extended: 80 0a 03 00 -- 80/hello machine
         writeMsg("Init",readThread.expect("Init response", msg -> msg.head(0x80)));
 
-        // patch version (?)
-        usb.sendSystemCmd("Patch version"
+        // perf version (?)
+        usb.sendSystemCmd("perf version"
                 ,0x35 // Q_VERSION_CNT
                 ,0x04 // perf version??
             );

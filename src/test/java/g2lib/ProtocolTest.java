@@ -729,4 +729,53 @@ class ProtocolTest {
     }
 
 
+    @Test
+    void readSynthSettingsMessage() throws Exception {
+        ByteBuffer buf = Util.readFile("data/msg_SynthSettings_f574.msg");
+        assertEquals(0x01,buf.get()); // cmd
+        assertEquals(0x0c,buf.get());
+        assertEquals(0x00,buf.get()); //perf version
+        assertEquals(0x03,buf.get()); //synth settings
+        BitBuffer bb = new BitBuffer(buf.slice());
+        FieldValues ss = SynthSettings.FIELDS.read(bb);
+        FieldValues ex = SynthSettings.FIELDS.values(
+                SynthSettings.DeviceName.value("ModularG2R"),
+                SynthSettings.PerfMode.value(1),
+                SynthSettings.Reserved0.value(0),
+                SynthSettings.Reserved1.value(0),
+                SynthSettings.PerfBank.value(0),
+                SynthSettings.PerfLocation.value(0),
+                SynthSettings.MemoryProtect.value(0),
+                SynthSettings.Reserved2.value(0),
+                SynthSettings.MidiChannelA.value(0),
+                SynthSettings.MidiChannelB.value(1),
+                SynthSettings.MidiChannelC.value(2),
+                SynthSettings.MidiChannelD.value(3),
+                SynthSettings.MidiChannelGlobal.value(0),
+                SynthSettings.SysExId.value(16),
+                SynthSettings.LocalOn.value(1),
+                SynthSettings.Reserved3.value(0),
+                SynthSettings.Reserved4.value(0),
+                SynthSettings.ProgramChangeReceive.value(1),
+                SynthSettings.ProgramChangeSend.value(0),
+                SynthSettings.Reserved5.value(0),
+                SynthSettings.ControllersReceive.value(1),
+                SynthSettings.ControllersSend.value(0),
+                SynthSettings.Reserved6.value(0),
+                SynthSettings.SendClock.value(0),
+                SynthSettings.IgnoreExternalClock.value(0),
+                SynthSettings.Reserved7.value(0),
+                SynthSettings.TuneCent.value(0),
+                SynthSettings.GlobalOctaveShiftActive.value(0),
+                SynthSettings.Reserved8.value(0),
+                SynthSettings.GlobalOctaveShift.value(0),
+                SynthSettings.TuneSemi.value(0),
+                SynthSettings.Reserved9.value(0),
+                SynthSettings.PedalPolarity.value(0),
+                SynthSettings.ReservedA.value(64),
+                SynthSettings.ControlPedalGain.value(0));
+        assertEquals(ex,ss,"SynthSettings");
+    }
+
+
 }

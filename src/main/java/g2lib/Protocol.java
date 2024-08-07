@@ -486,4 +486,47 @@ public class Protocol {
         public static final Fields FIELDS = new Fields(TextPad.class,values());
     }
 
+    public enum SynthSettings implements FieldEnum {
+        DeviceName,
+        PerfMode(1),
+        Reserved0(7),
+        Reserved1(8),
+        PerfBank(8),
+        PerfLocation(8),
+        MemoryProtect(1),
+        Reserved2(7),
+        MidiChannelA(8),
+        MidiChannelB(8),
+        MidiChannelC(8),
+        MidiChannelD(8),
+        MidiChannelGlobal(8),
+        SysExId(8),
+        LocalOn(1),
+        Reserved3(7),
+        Reserved4(6),
+        ProgramChangeReceive(1),
+        ProgramChangeSend(1),
+        Reserved5(6),
+        ControllersReceive(1),
+        ControllersSend(1),
+        Reserved6(1),
+        SendClock(1),
+        IgnoreExternalClock(1),
+        Reserved7(5),
+        TuneCent(8),
+        GlobalOctaveShiftActive(1),
+        Reserved8(7),
+        GlobalOctaveShift(8),
+        TuneSemi(8),
+        Reserved9(8),
+        PedalPolarity(1),
+        ReservedA(7),
+        ControlPedalGain(8);
+        SynthSettings(int size) { f = new SizedField(this,size); }
+        SynthSettings() { f = new StringField(this); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(SynthSettings.class,values());
+    }
+
 }
