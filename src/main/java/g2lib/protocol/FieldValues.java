@@ -30,12 +30,22 @@ public class FieldValues {
     public Optional<FieldValue> get(FieldEnum f) {
         int idx = f.ordinal();
         if (values.size() > idx) {
-            FieldValue fv = values.get(f.ordinal());
+            FieldValue fv = values.get(idx);
             if (fv.field() == f.field()) {
                 return Optional.of(fv);
             }
         }
         return Optional.empty();
+    }
+
+    public void update(FieldValue fv) {
+        Field f = fv.field();
+        int idx = f.ordinal();
+        if (values.size() > idx && values.get(idx).field() == f) {
+            values.set(idx, fv);
+        } else {
+            throw new IllegalArgumentException("update: field not found: " + f);
+        }
     }
 
     @Override

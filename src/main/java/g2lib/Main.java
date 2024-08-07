@@ -1,7 +1,5 @@
 package g2lib;
 
-import java.io.FileOutputStream;
-import java.nio.ByteBuffer;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -9,18 +7,6 @@ import java.util.logging.Logger;
 
 public class Main {
 
-
-    private static void writeBuffer(ByteBuffer data,String name) {
-        try (FileOutputStream fos = new FileOutputStream("data/" + name)) {
-            data.rewind();
-            byte[] bs = new byte[data.limit()];
-            data.get(bs);
-            fos.write(bs);
-            fos.flush();
-        } catch (Exception e) {
-            throw new RuntimeException("error writing patch desc", e);
-        }
-    }
 
     private static final Logger log = Util.getLogger(Main.class);
 
@@ -168,7 +154,7 @@ public class Main {
             log.info(String.format("========= MESSAGE: size=%x extended=%s ============ %s",
                     b.size(),b.extended(),Util.dumpBufferString(b.buffer())));
             String fn = String.format("msg%02d_%04x.msg",i,b.crc());
-            writeBuffer(b.buffer(),fn);
+            Util.writeBuffer(b.buffer(),fn);
             i++;
         }
         readThread.go.set(false);

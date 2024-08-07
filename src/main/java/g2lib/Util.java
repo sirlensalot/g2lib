@@ -1,6 +1,7 @@
 package g2lib;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Logger;
@@ -110,5 +111,17 @@ public class Util {
 
     public static void advanceBuffer(ByteBuffer buffer, int length) {
         buffer.position(buffer.position()+ length);
+    }
+
+    public static void writeBuffer(ByteBuffer data, String name) {
+        try (FileOutputStream fos = new FileOutputStream("data/" + name)) {
+            data.rewind();
+            byte[] bs = new byte[data.limit()];
+            data.get(bs);
+            fos.write(bs);
+            fos.flush();
+        } catch (Exception e) {
+            throw new RuntimeException("error writing patch desc", e);
+        }
     }
 }

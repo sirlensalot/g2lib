@@ -571,10 +571,6 @@ class ProtocolTest {
 
     private void testCurrentNote(Patch p) {
         FieldValues cns = p.getSection(Patch.Sections.SCurrentNote).values();
-        /*
-        80 00 01 60 00 01 00 00 08 00 00 40 00 02 00 00   . . . ` . . . . . . . @ . . . .
-        10 00 00
-        */
         assertFieldEquals(cns,0x40,CurrentNote.Note);
         assertFieldEquals(cns,0x00,CurrentNote.Attack);
         assertFieldEquals(cns,0x00,CurrentNote.Release);
@@ -702,46 +698,22 @@ class ProtocolTest {
 
     @Test
     void roundtripMsgFile() throws Exception {
-        ByteBuffer msgfilebuf = Util.readFile("data/patchdesc1.msg");
-        //ed77
-        System.out.printf("r - %x\n",CRC16.crc16(msgfilebuf.rewind(),0,msgfilebuf.limit()-2));//.rewind(),0,check));
-        //Util.dumpBuffer(msgfilebuf.rewind());
-        Patch p = Patch.readFromMessage(msgfilebuf);
+        ByteBuffer msgfile = Util.readFile("data/patchdesc1.msg");
+        Patch p = Patch.readFromMessage(msgfile);
         p.readSectionMessage(Util.readFile("data/msg10_cc8f.msg"), Patch.Sections.SCurrentNote);
         p.readSectionMessage(Util.readFile("data/msg11_5f41.msg"), Patch.Sections.STextPad);
-        ByteBuffer buf = p.writeMessage();
-        buf.limit(buf.position());
-        //Util.dumpBuffer(buf.rewind());
-        System.out.printf("w - %x\n",CRC16.crc16(buf.rewind(),0,buf.limit()-2));//.rewind(),0,check));
-        //Util.dumpBuffer(buf.rewind());
-        // 08 15 1d db c0 00 ed 77
-//        Util.dumpBuffer(buf);
-        /*
-fe 01 01 50 01 08 08 57 68 65 65 6c 00 00 01 08   . . . P . . . W h e e l . . . .
-09 56 65 6c 00 00 00 00 01 08 0a 4b 65 79 62 31   . V e l . . . . . . . K e y b 1
-00 00 01 08 0b 41 66 74 2e 54 63 68 01 08 0c 53   . . . . . A f t . T c h . . . S
-75 73 74 2e 50 64 01 08 0d 43 74 72 6c 2e 50 64   u s t . P d . . . C t r l . P d
-01 08 0e 50 2e 53 74 69 63 6b 01 08 0f 47 2e 57   . . . P . S t i c k . . . G . W
-68 20 32 00 00                                    h . 2 . .
-
-fe 01 01 50 01 08 08 57 68 65 65 6c 00 01 08 09   . . . P . . . W h e e l . . . .
-56 65 6c 00 00 00 01 08 0a 4b 65 79 62 31 00 01   V e l . . . . . . K e y b 1 . .
-08 0b 41 66 74 2e 54 63 68 01 08 0c 53 75 73 74   . . A f t . T c h . . . S u s t
-2e 50 64 01 08 0d 43 74 72 6c 2e 50 64 01 08 0e   . P d . . . C t r l . P d . . .
-50 2e 53 74 69 63 6b 01 08 0f 47 2e 57 68 20 32   P . S t i c k . . . G . W h . 2
-00                                                .
-
-
-01 02 14 01 08 01 43 68 20 31 00 00 00 01 08 03   . . . . . . C h . 1 . . . . . .
-43 68 20 54 77 6f 00 00                           C h . T w o . .
-
-01 02 14 01 08 01 43 68 20 31 00 00 01 08 03 43   . . . . . . C h . 1 . . . . . C
-68 20 54 77 6f 00                                 h . T w o .
-
-
-         */
+        ByteBuffer msgbuf = p.writeMessage();
+        assertEquals(msgfile.rewind(),msgbuf.rewind());
     }
 
+    @Test
+    void roundtripPatchFile() throws Exception {
+        String patchFile = "data/simplesynth001-20240802.pch2";
+        Patch p = Patch.readFromFile(patchFile);
+        ByteBuffer buf = p.writeFile();
+        ByteBuffer filebuf = Util.readFile(patchFile);
+        assertEquals(filebuf.rewind(),buf.rewind());
+    }
 
 
 }

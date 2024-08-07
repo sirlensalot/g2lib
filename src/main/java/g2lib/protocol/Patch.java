@@ -170,9 +170,9 @@ public class Patch {
         ByteBuffer slice = fileBuffer.slice();
         int crc = CRC16.crc16(slice,0,slice.limit()-2);
 
-        expectWarn(fileBuffer,0x17,filePath,"header");
-        expectWarn(fileBuffer,0x00,filePath,"header");
         Patch patch = new Patch();
+        expectWarn(fileBuffer,0x17,filePath,"header");
+        patch.version = fileBuffer.get();
 
         for (Sections ss : FILE_SECTIONS) {
             patch.readSection(fileBuffer,ss);
@@ -210,9 +210,6 @@ public class Patch {
         }
         ByteBuffer bbuf = bb.toBuffer();
 //        log.info(String.format("Wrote: %s, len=%x, crc=%x: %s\n",s,bb.limit(),CRC16.crc16(bbuf),Util.dumpBufferString(bbuf)));
-//        if (s == Sections.SMorphLabels || s == Sections.SModuleLabels0) {
-//            Util.dumpAllShifts(bbuf.rewind());
-//        }
 
         buf.put((byte) s.type);
         Util.putShort(buf,bbuf.limit());
@@ -224,7 +221,9 @@ public class Patch {
     }
 
     public ByteBuffer writeMessage() throws Exception {
+
         ByteBuffer buf = ByteBuffer.allocateDirect(2048);
+
         writeMessageHeader(buf);
         for (Patch.Sections s : MSG_SECTIONS) {
             writeSection(buf,s);
@@ -241,6 +240,26 @@ public class Patch {
         return buf;
     }
 
+    public ByteBuffer writeFile() throws Exception {
+        ByteBuffer buf = ByteBuffer.allocateDirect(2048);
+        buf.put(HEADER.rewind());
+        int start = buf.position();
+        if (version == -1) {
+            throw new RuntimeException("writeFile: version not initialized");
+        }
+        buf.put(Util.asBytes(0x17,version));
+        for (Patch.Sections s : FILE_SECTIONS) {
+            writeSection(buf,s);
+        }
+        buf.limit(buf.position());
+        buf.rewind();
+        int crc = CRC16.crc16(buf,start,buf.limit()-start);
+        buf.position(buf.limit());
+        buf.limit(buf.position()+2);
+        Util.putShort(buf,crc);
+        return buf;
+    }
+
     public void readSection(ByteBuffer buf, Sections s) throws Exception {
         BitBuffer bb = sliceSection(s.type,buf);
         //log.info(s + ": length " + bb.limit());
@@ -253,9 +272,7 @@ public class Patch {
         FieldValues fvs = s.fields.read(bb);
 //        log.info(String.format("Read: %s, len=%x, crc=%x: %s\n",s,bb.limit(),CRC16.crc16(bb.toBuffer()),
 //                Util.dumpBufferString(bb.toBuffer())));
-//        if (s == Sections.SMorphLabels || s == Sections.SModuleLabels0) {
-//            Util.dumpAllShifts(bb.toBuffer());
-//        }
+
         sections.put(s,new Section(s,fvs));
     }
 
