@@ -2,7 +2,6 @@ package g2lib;
 
 import g2lib.protocol.*;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
@@ -529,4 +528,66 @@ public class Protocol {
         public static final Fields FIELDS = new Fields(SynthSettings.class,values());
     }
 
+    /*
+     * type 0x13
+     */
+    public enum BankEntries implements FieldEnum {
+        Reserved0, // 0x74
+        Reserved1, // 0x01
+        ListNamesCmd, // 0x16
+        EntryFid, // 0x01
+        Entry,
+        BankEntryFid, // 0x03
+        BankNum,
+        EntryNum,
+        Entries(true),
+        Terminator;
+        BankEntries() { f = new SizedField(this,8); }
+        BankEntries(boolean ignored) {
+            f = new SubfieldsField(this, BankEntry.FIELDS,0) {
+                @Override
+                protected void readSubfields(BitBuffer bb, List<FieldValues> values,
+                                             int count, List<FieldValues> result) {
+                    int b = 0;
+                    while ((b = bb.peek(8)) != 0x05 && b != 0x04) {
+                        result.add(subfields.read(bb, values));
+                    }
+                }
+            };
+        }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(BankEntries.class,values());
+
+    }
+
+    public enum BankEntry implements FieldEnum {
+        BankChange {
+            @Override
+            protected Field initField() {
+                return new SizedField(this,16) {
+                    @Override
+                    public void read(BitBuffer bb, List<FieldValues> values) {
+                        int v = 0; //0x00 logically impossible => sentinel for "no change"
+                        if (bb.peek(8) == 0x03) {
+                            bb.get(8);
+                            v = bb.get(16);
+                        }
+                        values.getFirst().add(new IntValue(this,v));
+                    }
+                };
+            }
+        },
+        Name,
+        Category(8);
+        BankEntry(int s) { f = new SizedField(this,s); }
+        BankEntry() { f = initField(); }
+        protected Field initField() { return new StringField(this,15,true); }
+        private final Field f;
+        public Field field() { return f; }
+        public static final Fields FIELDS = new Fields(BankEntry.class,values());
+    }
+
+
 }
+

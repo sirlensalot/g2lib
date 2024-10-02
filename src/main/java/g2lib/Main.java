@@ -1,9 +1,11 @@
 package g2lib;
 
+import g2lib.state.Device;
 import g2lib.usb.Usb;
 import g2lib.usb.UsbMessage;
 import g2lib.usb.UsbReadThread;
 
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class Main {
@@ -120,6 +122,14 @@ public class Main {
         writeMsg("Slot1TextPad",readThread.expect("slot 1 text",m->m.head(0x01,0x09,0x00,0x6f)));
 
 
+        //send list message:
+
+        //patches: 32 Banks with 128 memory locations each
+        Map<Integer, Map<Integer, String>> patches = Device.readEntryList(usb, readThread, 32, true);
+
+
+        //perfs: 8 Banks with 128 memory locations each
+        Map<Integer, Map<Integer, String>> perfs = Device.readEntryList(usb, readThread, 8, false);
 
         System.out.println("Received: " + readThread.recd.get());
         System.out.println("queue size: " + readThread.q.size());
@@ -129,6 +139,9 @@ public class Main {
         readThread.thread.join();
 
         usb.shutdown();
+
+        Device.dumpEntries(true,patches);
+        Device.dumpEntries(false,perfs);
 
         System.out.println("Exit");
     }

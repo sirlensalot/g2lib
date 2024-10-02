@@ -6,6 +6,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 public class UsbReadThread implements Runnable {
@@ -23,7 +24,7 @@ public class UsbReadThread implements Runnable {
     public final AtomicInteger recd = new AtomicInteger(0);
     public final LinkedBlockingQueue<UsbMessage> q = new LinkedBlockingQueue<>();
 
-
+    public void start() { thread.start(); }
 
     @Override
     public void run() {
@@ -54,9 +55,13 @@ public class UsbReadThread implements Runnable {
         log.info("Done");
     }
 
-    public UsbMessage expect(String msg, Function<UsbMessage,Boolean> filter) throws InterruptedException {
+    public interface MsgP extends Predicate<UsbMessage> {
+
+    }
+
+    public UsbMessage expect(String msg, MsgP filter) throws InterruptedException {
         UsbMessage m = q.take();
-        if (filter.apply(m)) {
+        if (filter.test(m)) {
             log.fine("expect: received " + msg + ": " + m.dump());
             return m;
         } else {

@@ -17,7 +17,9 @@ public record UsbMessage(int size, boolean extended, int crc, ByteBuffer buffer)
     }
 
     public boolean head(int... values) {
-        return test(0,values);
+        boolean test = test(0, values);
+        buffer.position(values.length); // side-effect for easier parsing
+        return test;
     }
 
     public boolean test(int index,int... values) {

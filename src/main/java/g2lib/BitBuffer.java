@@ -31,6 +31,15 @@ public class BitBuffer {
         return get(8);
     }
 
+    public int peek(int len) {
+        int bi = bindex;
+        int bl = blength;
+        int r = get(len);
+        bindex = bi;
+        blength = bl;
+        return r;
+    }
+
 
     public int get(int len) {
         if (bindex + len > blength) {

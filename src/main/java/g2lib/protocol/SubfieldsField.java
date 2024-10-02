@@ -8,7 +8,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 
 public class SubfieldsField extends AbstractField implements Field {
-    private final Fields subfields;
+    protected final Fields subfields;
     private final SubfieldCount subfieldCount;
 
     public interface SubfieldCount {
@@ -69,10 +69,14 @@ public class SubfieldsField extends AbstractField implements Field {
     public void read(BitBuffer bb, List<FieldValues> values) {
         int count = subfieldCount.getCount(values);
         List<FieldValues> vs = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            vs.add(subfields.read(bb,values));
-        }
+        readSubfields(bb, values, count, vs);
         values.getFirst().add(new SubfieldsValue(this, vs));
+    }
+
+    protected void readSubfields(BitBuffer bb, List<FieldValues> values, int count, List<FieldValues> result) {
+        for (int i = 0; i < count; i++) {
+            result.add(subfields.read(bb, values));
+        }
     }
 
 

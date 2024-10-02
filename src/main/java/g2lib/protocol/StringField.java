@@ -11,16 +11,23 @@ public class StringField extends AbstractField implements Field {
     public static final int NO_TERMINATION = -1;
     private final Logger log = Util.getLogger(StringField.class);
     private final int length;
+    private final boolean lengthWithTerm;
 
     public <T extends Enum<T>> StringField(Enum<T> e) {
         super(e);
         this.length = 0;
+        this.lengthWithTerm = false;
     }
     public <T extends Enum<T>> StringField(Enum<T> e, int length) {
         super(e);
         this.length = length;
+        this.lengthWithTerm = false;
     }
-
+    public <T extends Enum<T>> StringField(Enum<T> e, int length, boolean lengthWithTerm) {
+        super(e);
+        this.length = length;
+        this.lengthWithTerm = lengthWithTerm;
+    }
     @Override
     public String toString() {
         return String.format("%s: (String)",
@@ -37,7 +44,7 @@ public class StringField extends AbstractField implements Field {
             if (c != 0) {
                 sb.append(Character.valueOf((char) c));
             } else {
-                if (length <= 0) { break; }
+                if (lengthWithTerm || length <= 0) { break; }
             }
         }
         values.getFirst().add(new StringValue(this, sb.toString()));
